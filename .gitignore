@@ -2,3 +2,46 @@ node_modules/
 test-results/
 playwright-report/
 .DS_Store
+
+# Local configuration and credentials (only sanitized examples belong in Git)
+.env
+.env.*
+!.env.example
+!.env.*.example
+appsettings*.json
+!appsettings*.example.json
+secrets.json
+*.pem
+*.key
+*.pfx
+*.p12
+*.publishsettings
+*.pubxml
+
+# IDE / machine-specific state
+.idea/
+.vs/
+.vscode/
+*.user
+*.suo
+*.sln.docstates
+*.userosscache
+
+# Build, caches, logs and test artifacts
+[Bb]in/
+[Oo]bj/
+dist/
+build/
+.vite/
+coverage/
+TestResults/
+*.log
+*.binlog
+*.tsbuildinfo
+
+# Local database files / exports (keep schema and migrations)
+*.dump
+*.backup
+*.sqlite
+*.sqlite3
+*.db

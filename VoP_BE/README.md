@@ -8,7 +8,13 @@ The supplied DBML contains **9 domain tables**, 6 PostgreSQL enums, 11 foreign k
 
 PostgreSQL runs on `localhost:5433` in the existing `vop-local-postgres-1` Docker container. Database **vop_codefirst** is dedicated to EF migrations. The older `vop` SQL-initialized database and its data remain untouched.
 
-`VoP.Api/appsettings.json` holds `ConnectionStrings:DefaultConnection` with host, port, database and user. The full local connection, including password, is stored in .NET user secrets (`vop-local-development`), not in tracked JSON. Use Development environment to load user secrets. On another machine set the same key with `dotnet user-secrets set` or the environment variable `ConnectionStrings__DefaultConnection`.
+After cloning, create local settings from the sanitized template:
+
+```sh
+cp VoP.Api/appsettings.example.json VoP.Api/appsettings.json
+```
+
+`VoP.Api/appsettings.json` and environment-specific `appsettings*.json` are local, ignored files. Only `appsettings*.example.json` templates are versioned. `VoP.Api/appsettings.json` holds `ConnectionStrings:DefaultConnection` with host, port, database and user. The full local connection, including password, is stored in .NET user secrets (`vop-local-development`), not in tracked JSON. Use Development environment to load user secrets. On another machine set the same key with `dotnet user-secrets set` or the environment variable `ConnectionStrings__DefaultConnection`.
 
 ## Commands
 
@@ -40,3 +46,10 @@ dotnet run --project VoP.Api -- --environment Development
 ```
 
 Open http://127.0.0.1:5080/swagger to browse endpoints and use **Try it out**. The OpenAPI document is at http://127.0.0.1:5080/swagger/v1/swagger.json. Swagger is disabled outside Development. Requests execute against the configured database, so write operations change local data.
+
+## Git and local secrets
+
+- Keep database passwords in .NET user secrets or environment variables, never in tracked settings. `database/.env.example` is a blank template; the real `.env` stays local.
+- Build output, IDE state, logs, private keys and local database exports are ignored at the repository root.
+- `Properties/launchSettings.json` remains tracked: it contains only the shared Development launch profile and Swagger URL, not credentials. Do not add passwords or tokens to it.
+- Ignore rules do not erase previous commits. If a real credential was pushed, revoke/rotate it; removing a tracked file in a new commit does not remove the old content from history.
