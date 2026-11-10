@@ -1,0 +1,406 @@
+"use strict";
+window.VOP = window.VOP || {};
+VOP.LEVELS = [
+  "Chưa học",
+  "Mới làm quen",
+  "Đang ghi nhớ",
+  "Dần vững vàng",
+  "Nhớ tốt",
+  "Thành thạo",
+];
+VOP.INTERVALS = [
+  0,
+  10 * 60000,
+  6 * 3600000,
+  86400000,
+  3 * 86400000,
+  7 * 86400000,
+];
+VOP.seed = function () {
+  const rows = [
+    [
+      "resilient",
+      "kiên cường; có khả năng phục hồi",
+      "/rɪˈzɪliənt/",
+      "She remained resilient in the face of change.",
+      "adjective",
+    ],
+    [
+      "serendipity",
+      "sự tình cờ may mắn",
+      "/ˌserənˈdɪpəti/",
+      "Finding this book was pure serendipity.",
+      "noun",
+    ],
+    [
+      "articulate",
+      "diễn đạt rõ ràng, mạch lạc",
+      "/ɑːrˈtɪkjələt/",
+      "She is an articulate speaker.",
+      "adjective",
+    ],
+    [
+      "embrace",
+      "đón nhận; ôm lấy",
+      "/ɪmˈbreɪs/",
+      "We should embrace new ideas.",
+      "verb",
+    ],
+    [
+      "subtle",
+      "tinh tế; khó nhận thấy",
+      "/ˈsʌtəl/",
+      "There is a subtle difference between the two.",
+      "adjective",
+    ],
+    [
+      "thrive",
+      "phát triển mạnh",
+      "/θraɪv/",
+      "These plants thrive in sunlight.",
+      "verb",
+    ],
+    [
+      "eloquent",
+      "hùng hồn; có sức thuyết phục",
+      "/ˈeləkwənt/",
+      "He gave an eloquent speech.",
+      "adjective",
+    ],
+    [
+      "mindful",
+      "chú tâm; lưu tâm",
+      "/ˈmaɪndfəl/",
+      "Be mindful of the people around you.",
+      "adjective",
+    ],
+    [
+      "curiosity",
+      "sự tò mò",
+      "/ˌkjʊriˈɑːsəti/",
+      "Her curiosity led her to ask more questions.",
+      "noun",
+    ],
+    [
+      "perspective",
+      "góc nhìn; quan điểm",
+      "/pərˈspektɪv/",
+      "Travel can change your perspective.",
+      "noun",
+    ],
+    [
+      "endeavor",
+      "nỗ lực; cố gắng",
+      "/ɪnˈdevər/",
+      "Learning a language is a rewarding endeavor.",
+      "noun",
+    ],
+    [
+      "authentic",
+      "chân thực; xác thực",
+      "/ɔːˈθentɪk/",
+      "The restaurant serves authentic Italian food.",
+      "adjective",
+    ],
+    [
+      "profound",
+      "sâu sắc",
+      "/prəˈfaʊnd/",
+      "The experience had a profound impact on her.",
+      "adjective",
+    ],
+    [
+      "flourish",
+      "phát triển; nở rộ",
+      "/ˈflɜːrɪʃ/",
+      "Creativity can flourish in a supportive space.",
+      "verb",
+    ],
+    [
+      "coherent",
+      "mạch lạc; nhất quán",
+      "/koʊˈhɪrənt/",
+      "Please write a coherent paragraph.",
+      "adjective",
+    ],
+    [
+      "diligent",
+      "siêng năng; chăm chỉ",
+      "/ˈdɪlɪdʒənt/",
+      "The diligent student reviewed her notes.",
+      "adjective",
+    ],
+    [
+      "empathy",
+      "sự đồng cảm",
+      "/ˈempəθi/",
+      "Listening helps us develop empathy.",
+      "noun",
+    ],
+    [
+      "versatile",
+      "đa năng; linh hoạt",
+      "/ˈvɜːrsətəl/",
+      "This is a versatile tool.",
+      "adjective",
+    ],
+    [
+      "insight",
+      "sự thấu hiểu",
+      "/ˈɪnsaɪt/",
+      "The research offers insight into memory.",
+      "noun",
+    ],
+    [
+      "sustainable",
+      "bền vững",
+      "/səˈsteɪnəbəl/",
+      "We need a sustainable solution.",
+      "adjective",
+    ],
+    [
+      "ambitious",
+      "có tham vọng",
+      "/æmˈbɪʃəs/",
+      "She set an ambitious goal.",
+      "adjective",
+    ],
+    [
+      "tranquil",
+      "yên bình; tĩnh lặng",
+      "/ˈtræŋkwɪl/",
+      "The garden is a tranquil place.",
+      "adjective",
+    ],
+    [
+      "navigate",
+      "định hướng; điều hướng",
+      "/ˈnævɪɡeɪt/",
+      "He learned to navigate the city.",
+      "verb",
+    ],
+    [
+      "acknowledge",
+      "thừa nhận; ghi nhận",
+      "/əkˈnɑːlɪdʒ/",
+      "We acknowledge your contribution.",
+      "verb",
+    ],
+    [
+      "innovative",
+      "có tính đổi mới",
+      "/ˈɪnəveɪtɪv/",
+      "They developed an innovative approach.",
+      "adjective",
+    ],
+    [
+      "abundant",
+      "dồi dào; phong phú",
+      "/əˈbʌndənt/",
+      "The region has abundant natural resources.",
+      "adjective",
+    ],
+    [
+      "perseverance",
+      "sự kiên trì",
+      "/ˌpɜːrsəˈvɪrəns/",
+      "Success requires perseverance.",
+      "noun",
+    ],
+    [
+      "adapt",
+      "thích nghi",
+      "/əˈdæpt/",
+      "We must adapt to new conditions.",
+      "verb",
+    ],
+    [
+      "contemplate",
+      "suy ngẫm",
+      "/ˈkɑːntəmpleɪt/",
+      "Take time to contemplate your next step.",
+      "verb",
+    ],
+    [
+      "essential",
+      "thiết yếu",
+      "/ɪˈsenʃəl/",
+      "Sleep is essential for learning.",
+      "adjective",
+    ],
+    [
+      "gratitude",
+      "lòng biết ơn",
+      "/ˈɡrætɪtuːd/",
+      "She expressed her gratitude in a letter.",
+      "noun",
+    ],
+    [
+      "foster",
+      "nuôi dưỡng; thúc đẩy",
+      "/ˈfɑːstər/",
+      "Good teachers foster curiosity.",
+      "verb",
+    ],
+    [
+      "precise",
+      "chính xác",
+      "/prɪˈsaɪs/",
+      "Give me a precise description.",
+      "adjective",
+    ],
+    [
+      "intuitive",
+      "trực quan; theo trực giác",
+      "/ɪnˈtuːɪtɪv/",
+      "The interface is intuitive to use.",
+      "adjective",
+    ],
+    [
+      "remarkable",
+      "đáng chú ý; xuất sắc",
+      "/rɪˈmɑːrkəbəl/",
+      "She made remarkable progress.",
+      "adjective",
+    ],
+    [
+      "acquire",
+      "tiếp thu; có được",
+      "/əˈkwaɪər/",
+      "Children acquire language through interaction.",
+      "verb",
+    ],
+    [
+      "retain",
+      "giữ lại; ghi nhớ",
+      "/rɪˈteɪn/",
+      "Practice helps us retain information.",
+      "verb",
+    ],
+    [
+      "gradually",
+      "dần dần",
+      "/ˈɡrædʒuəli/",
+      "Her confidence grew gradually.",
+      "adverb",
+    ],
+    [
+      "consistent",
+      "nhất quán; đều đặn",
+      "/kənˈsɪstənt/",
+      "Consistent practice makes a difference.",
+      "adjective",
+    ],
+    [
+      "fulfilling",
+      "mang lại sự mãn nguyện",
+      "/fʊlˈfɪlɪŋ/",
+      "Teaching is a fulfilling career.",
+      "adjective",
+    ],
+    [
+      "nuance",
+      "sắc thái tinh tế",
+      "/ˈnuːɑːns/",
+      "She understands every nuance of the poem.",
+      "noun",
+    ],
+    ["unwind", "thư giãn", "/ʌnˈwaɪnd/", "I read a book to unwind.", "verb"],
+    [
+      "cherish",
+      "trân trọng; yêu quý",
+      "/ˈtʃerɪʃ/",
+      "We cherish our time together.",
+      "verb",
+    ],
+    [
+      "aspiration",
+      "khát vọng",
+      "/ˌæspəˈreɪʃən/",
+      "Her aspiration is to become a writer.",
+      "noun",
+    ],
+    [
+      "thoughtful",
+      "chu đáo; sâu sắc",
+      "/ˈθɔːtfəl/",
+      "That was a thoughtful gesture.",
+      "adjective",
+    ],
+    [
+      "vivid",
+      "sống động; rõ nét",
+      "/ˈvɪvɪd/",
+      "He has a vivid imagination.",
+      "adjective",
+    ],
+    [
+      "overcome",
+      "vượt qua",
+      "/ˌoʊvərˈkʌm/",
+      "She worked hard to overcome her fear.",
+      "verb",
+    ],
+    [
+      "awe",
+      "sự kinh ngạc; kính phục",
+      "/ɔː/",
+      "We watched the mountains in awe.",
+      "noun",
+    ],
+  ];
+  const now = Date.now();
+  const levels = [
+    ...Array(4).fill(1),
+    ...Array(6).fill(2),
+    ...Array(8).fill(3),
+    ...Array(10).fill(4),
+    ...Array(12).fill(5),
+    ...Array(8).fill(0),
+  ];
+  return {
+    version: 1,
+    words: rows.map((r, i) => ({
+      id: "seed-" + i,
+      word: r[0],
+      meaning: r[1],
+      ipa: r[2],
+      example: r[3],
+      pos: r[4],
+      level: levels[i],
+      due: levels[i]
+        ? now + (i < 12 ? -(12 - i) * 3600000 : ((i % 6) + 1) * 86400000)
+        : null,
+      created: now - i * 3600000,
+      lapses: i % 11 === 0 ? 2 : 0,
+      maintenance: 0,
+    })),
+    sessions: Array.from({ length: 7 }, (_, i) => ({
+      id: "history-" + i,
+      date: now - (7 - i) * 86400000,
+      answers: [12, 18, 8, 16, 22, 14, 20][i],
+      correct: [10, 15, 7, 14, 20, 12, 18][i],
+      words: 8,
+      newWords: [2, 3, 1, 2, 4, 2, 3][i],
+      duration: 240000,
+      seed: true,
+    })),
+    theme: "light",
+  };
+};
+VOP.escape = (value) =>
+  String(value ?? "").replace(
+    /[&<>"']/g,
+    (c) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[
+        c
+      ],
+  );
+VOP.normal = (value) =>
+  String(value)
+    .normalize("NFKC")
+    .toLowerCase()
+    .trim()
+    .replace(/[’‘]/g, "'")
+    .replace(/\s+/g, " ")
+    .replace(/[.!?,;:]+$/g, "");

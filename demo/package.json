@@ -1,0 +1,13 @@
+{
+  "name": "vop-vanilla-demo",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "python3 -m http.server 4186 --bind 127.0.0.1",
+    "test": "node --test tests/*.test.cjs",
+    "test:e2e": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.1"
+  }
+}

@@ -1,0 +1,1220 @@
+/* Shared shell extracted from the approved Dashboard. */
+body {
+  --bg: #e5dce0;
+  --ink: #111114;
+  --muted: #56505a;
+  --accent-ink: var(--accent);
+}
+body::before {
+  background: url("../assets/glass-background.jpg") center/cover no-repeat;
+  opacity: 0.86;
+  -webkit-mask-image: linear-gradient(to right, #000 45%, transparent 95%);
+  mask-image: linear-gradient(to right, #000 45%, transparent 95%);
+}
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: url("../assets/dashboard-ambient.svg") center/cover no-repeat, radial-gradient( ellipse at 96% 2%, rgba(255, 226, 209, 0.38), transparent 52% ), radial-gradient( ellipse at 15% 100%, rgba(255, 217, 193, 0.22), transparent 48% );
+}
+html[data-theme="dark"] body {
+  --bg: #1a191b;
+  --ink: #f8f2ec;
+  --muted: #c9bfb9;
+  --accent-ink: var(--accent);
+}
+html[data-theme="dark"] body::before {
+  opacity: 0.13;
+}
+html[data-theme="dark"] body::after {
+  background: rgba(18, 16, 17, 0.55);
+}
+.app-shell .sidebar {
+  background: linear-gradient( 130deg, rgba(255, 255, 255, 0.31), rgba(255, 250, 246, 0.12) );
+  border-color: rgba(255, 255, 255, 0.72);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.65), 0 12px 32px rgba(117, 84, 68, 0.035);
+  border-radius: 40px;
+}
+.app-shell .brand {
+  font-weight: 800;
+}
+.app-shell .nav-item {
+  font-weight: 650;
+}
+.app-shell .nav-item.active {
+  background: linear-gradient( 130deg, rgba(255, 240, 229, 0.85), rgba(255, 201, 165, 0.53) );
+  color: var(--accent);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.75);
+  border-radius: 25px;
+}
+.app-shell .theme-toggle {
+  height: 52px;
+  background: rgba(255, 248, 241, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+}
+.app-shell .top-search {
+  background: rgba(255, 255, 255, 0.29);
+  border-color: rgba(255, 255, 255, 0.75);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.65);
+}
+.app-shell .top-search kbd {
+  background: rgba(105, 92, 102, 0.08);
+  border-radius: 9px;
+  padding: 3px 6px;
+}
+.app-shell .breadcrumb {
+  color: var(--ink);
+  font-weight: 600;
+}
+.app-shell .page-heading h1 {
+  font-weight: 750;
+}
+.app-shell .page-heading p {
+  color: var(--muted);
+}
+.app-shell .orange-word {
+  color: var(--accent);
+}
+.app-shell .app-footer {
+  display: none;
+}
+html[data-theme="dark"] .app-shell .sidebar {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+html[data-theme="dark"] .app-shell .nav-item.active {
+  background: rgba(253, 95, 1, 0.15);
+  color: var(--accent);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.09);
+}
+@media (min-width: 1280px) {
+  .app-shell {
+    grid-template-columns: 196px minmax(0, 1fr);
+    padding: 24px 28px;
+    gap: 32px;
+  }
+  .app-shell .sidebar {
+    top: 24px;
+    height: calc(100dvh - 48px);
+  }
+  .app-shell .workspace {
+    padding-right: 4px;
+  }
+  .app-shell .brand {
+    margin: 4px 28px 42px;
+  }
+  .app-shell .nav-item {
+    font-size: 16px;
+    gap: 15px;
+    padding: 0 10px 0 22px;
+    height: 54px;
+  }
+  .app-shell .nav-item .icon {
+    width: 24px;
+    height: 24px;
+  }
+  .app-shell .sidebar nav {
+    gap: 10px;
+  }
+  .app-shell .topbar {
+    height: 36px;
+    margin-bottom: 4px;
+  }
+  .app-shell .breadcrumb {
+    padding: 9px 0 0 20px;
+    font-size: 16px;
+  }
+  .app-shell .breadcrumb .icon {
+    width: 22px;
+    height: 22px;
+  }
+  .app-shell .top-actions {
+    gap: 24px;
+    padding-right: 0;
+  }
+  .app-shell .top-search {
+    width: 316px;
+    padding: 12px 18px;
+  }
+  .app-shell .top-search input {
+    font-size: 16px;
+  }
+  .app-shell .top-actions .btn-primary {
+    min-width: 192px;
+  }
+  .app-shell .page-heading {
+    margin: 0 0 0 20px;
+  }
+  .app-shell .page-heading h1 {
+    font-size: 48px;
+    line-height: 1.15;
+    letter-spacing: -1.6px;
+  }
+  .app-shell .page-heading p {
+    font-size: 20px;
+    line-height: 1.5;
+    margin-top: 3px;
+  }
+}
+@media (min-width: 1280px) and (max-width: 1500px) {
+  .app-shell .top-actions {
+    padding-right: 0;
+    gap: 16px;
+  }
+  .app-shell .top-search {
+    width: 240px;
+  }
+  .app-shell .page-heading h1 {
+    font-size: 40px;
+  }
+}
+@media (max-width: 1279px) {
+  .app-shell .topbar {
+    height: 56px;
+  }
+  .app-shell .page-heading {
+    margin-bottom: 18px;
+  }
+  .app-shell .page-heading h1 {
+    font-size: 34px;
+  }
+}
+@media (max-width: 767px) {
+  .app-shell .topbar {
+    height: 80px;
+    gap: 8px;
+  }
+  .app-shell .top-actions {
+    gap: 4px;
+  }
+  .app-shell .top-actions .btn-primary {
+    font-size: 14px;
+    padding: 10px 14px;
+    min-height: 44px;
+    gap: 6px;
+  }
+  .app-shell .top-actions .btn-primary > .icon {
+    width: 16px;
+    height: 16px;
+  }
+  .app-shell .page-heading h1 {
+    font-size: 29px;
+  }
+  .app-shell .page-heading p {
+    font-size: 14px;
+    line-height: 1.7;
+  }
+}
+@media (min-width: 1280px) {
+  .app-shell .nav-item > span {
+    white-space: nowrap;
+  }
+}
+.app-shell .icon {
+  stroke-width: 17;
+}
+html[data-theme="dark"] .app-shell .top-search input::placeholder {
+  color: var(--muted);
+}
+@media (min-width: 1280px) {
+  .app-shell .top-actions {
+    position: relative;
+    top: 10px;
+  }
+}
+/* Reusable materials: one lighting direction, one edge and shadow system. */
+:root {
+  --glass-face: linear-gradient(145deg, rgba(255,255,255,.38), rgba(255,250,247,.17));
+  --glass-peach: radial-gradient(ellipse at 96% 0%, rgba(255,174,116,.23), transparent 64%), var(--glass-face);
+  --glass-inset: rgba(255,255,255,.15);
+  --glass-control: linear-gradient(145deg, rgba(255,255,255,.31), rgba(255,255,255,.14));
+  --glass-dialog: linear-gradient(145deg, rgba(255,250,246,.86), rgba(244,232,226,.76));
+  --glass-edge: rgba(255,255,255,.76);
+  --glass-edge-soft: rgba(255,255,255,.42);
+  --glass-reflection: rgba(255,255,255,.66);
+  --glass-shadow: rgba(117,84,68,.045);
+  --glass-radius: 32px;
+  --glass-blur: 10px;
+  --control-bg: var(--glass-control);
+  --control-hover: rgba(255,255,255,.34);
+}
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --glass-face: linear-gradient(145deg, rgba(255,255,255,.065), rgba(255,239,226,.025));
+  --glass-peach: radial-gradient(ellipse at 96% 0%, rgba(204,107,50,.12), transparent 64%), var(--glass-face);
+  --glass-inset: rgba(255,255,255,.035);
+  --glass-control: linear-gradient(145deg, rgba(255,255,255,.075), rgba(255,255,255,.035));
+  --glass-dialog: linear-gradient(145deg, rgba(45,39,36,.91), rgba(29,27,27,.9));
+  --glass-edge: rgba(255,255,255,.16);
+  --glass-edge-soft: rgba(255,255,255,.11);
+  --glass-reflection: rgba(255,255,255,.12);
+  --glass-shadow: rgba(0,0,0,.1);
+  --control-hover: rgba(255,255,255,.09);
+  --green: #91c8a0;
+  --error: #efaa9c;
+}
+html[data-theme="light"] {
+  color-scheme: light;
+}
+.glass-panel {
+  background: var(--glass-face);
+  border: 1px solid var(--glass-edge);
+  border-radius: var(--glass-radius);
+  box-shadow: inset 0 1px 1px var(--glass-reflection), 0 10px 28px var(--glass-shadow);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.04);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.04);
+}
+.glass-panel--peach {
+  background: var(--glass-peach);
+}
+.glass-panel--dialog {
+  background: var(--glass-dialog);
+  --glass-blur: 16px;
+}
+.glass-control {
+  color: var(--ink);
+  background: var(--glass-control);
+  border: 1px solid var(--glass-edge-soft);
+  box-shadow: inset 0 1px 1px var(--glass-reflection);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+.glass-inset {
+  background: var(--glass-inset);
+  border: 1px solid var(--glass-edge-soft);
+  border-radius: 20px;
+}
+.glass-segmented {
+  width: fit-content;
+  max-width: 100%;
+  padding: 6px;
+  border: 1px solid var(--glass-edge-soft);
+  border-radius: 28px;
+  background: var(--glass-control);
+  box-shadow: inset 0 1px 1px var(--glass-reflection);
+}
+.glass-segmented > button {
+  min-height: 38px;
+  padding: 8px 16px;
+  font-size: 13px;
+}
+.glass-segmented > button.selected {
+  background: var(--accent-tint);
+  box-shadow: inset 0 1px 1px var(--glass-reflection);
+  color: var(--accent-ink);
+}
+.glass-segmented > button > span {
+  font-size: 12px;
+  opacity: 1;
+}
+.glass-panel :is(h2,h3) {
+  font-weight: 700;
+}
+.app-shell:not([data-view="dashboard"]) .page-heading {
+  margin-bottom: 28px;
+}
+.app-shell:not([data-view="dashboard"]) .page-heading p {
+  max-width: 65ch;
+}
+.app-shell:not([data-view="dashboard"]) h2 {
+  letter-spacing: -.5px;
+}
+.app-shell .icon {
+  stroke-width: 17;
+}
+.app-shell .mobile-nav > a .icon {
+  stroke-width: 17;
+}
+.app-shell .mobile-nav {
+  background: var(--glass-dialog);
+  border-color: var(--glass-edge);
+}
+.app-shell .nav-item > span {
+  white-space: nowrap;
+}
+.app-shell .top-search input {
+  box-shadow: none;
+  border: 0;
+  background: none;
+}
+input::placeholder, textarea::placeholder {
+  color: var(--muted);
+  opacity: .85;
+}
+select option {
+  background: var(--bg);
+  color: var(--ink);
+}
+select.glass-control {
+  border-radius: 18px;
+  min-height: 44px;
+  font-size: 14px;
+}
+.btn-secondary, .btn-danger, .icon-button {
+  border: 1px solid var(--glass-edge-soft);
+  box-shadow: inset 0 1px 1px var(--glass-reflection);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+.btn-secondary {
+  background: var(--glass-control);
+}
+.btn-danger {
+  color: var(--error);
+  background: var(--danger-surface);
+}
+.icon-button {
+  background: var(--glass-inset);
+}
+.icon-button:not(:disabled):hover {
+  background: var(--control-hover);
+}
+.level-tag {
+  background: var(--glass-inset);
+  border: 1px solid var(--glass-edge-soft);
+  font-size: 12px;
+}
+.round-emblem, .audio-button, .result-emblem {
+  background: var(--glass-peach);
+  border: 1px solid var(--glass-edge);
+  box-shadow: inset 0 1px 1px var(--glass-reflection);
+}
+/* Vocabulary library: one readable glass sheet with quiet row separation. */
+.library-tools {
+  gap: 16px;
+}
+.search-input.glass-control {
+  border-radius: 22px;
+  min-height: 52px;
+}
+.search-input input {
+  background: none;
+  border: 0;
+  box-shadow: none;
+  font-size: 15px;
+}
+.library-tools > select {
+  min-height: 52px;
+}
+.heading-count {
+  color: var(--ink);
+  font-weight: 700;
+}
+.table-container.glass-panel {
+  border-radius: 28px;
+}
+.word-table th {
+  background: var(--glass-inset);
+  font-size: 12px;
+  font-weight: 600;
+}
+.word-table td {
+  font-size: 14px;
+  padding: 19px 20px;
+}
+.word-table tbody tr:hover {
+  background: var(--glass-inset);
+}
+.word-table .meaning-cell {
+  font-size: 14px !important;
+}
+.table-word strong {
+  font-size: 17px;
+  font-weight: 700;
+}
+.table-word span {
+  font-size: 12px;
+}
+.table-word .icon-button, .row-actions .icon-button {
+  width: 32px;
+  height: 32px;
+}
+.due-label {
+  font-size: 12px;
+}
+.word-table th:last-child {
+  width: 11%;
+}
+.list-footer {
+  font-size: 12px;
+  padding: 0 6px;
+}
+.empty-state.glass-panel {
+  padding: 56px 28px;
+  margin-top: 24px;
+}
+/* Practice setup, introduction, questions and results share the same material. */
+.practice-setup {
+  grid-template-columns: 1.05fr 1.15fr;
+  gap: 24px;
+  margin-top: 24px;
+  align-items: stretch;
+}
+.session-intro.glass-panel {
+  padding: 36px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+.session-intro__heading > h2 {
+  font-size: 32px;
+  font-weight: 750;
+}
+
+.session-facts {
+  margin: 32px 0;
+  gap: 32px;
+}
+.session-facts strong {
+  font-size: 36px;
+  font-weight: 700;
+}
+.session-facts > span {
+  font-size: 13px;
+}
+.session-intro > .btn {
+  width: 100%;
+  margin-top: auto;
+}
+.session-intro > .setup-note {
+  font-size: 12px !important;
+  margin-top: 16px;
+}
+.session-plan.glass-panel {
+  padding: 32px;
+  border-left: 1px solid var(--glass-edge);
+}
+.session-plan h3 {
+  font-size: 20px;
+}
+.session-word-list {
+  gap: 8px 24px;
+}
+.session-word-list > div {
+  font-size: 14px;
+  padding: 12px 0;
+}
+.session-word-list .level-tag {
+  font-size: 10px;
+  padding: 3px 8px;
+}
+.proposal-note {
+  font-size: 11px;
+}
+.learning-header.glass-control {
+  max-width: 850px;
+  margin: 20px auto 24px;
+  padding: 12px 16px;
+  border-radius: 28px;
+}
+.learning-header .icon-button {
+  width: 36px;
+  height: 36px;
+}
+.question-progress {
+  height: 8px;
+  background: var(--glass-inset);
+  border: 1px solid var(--glass-edge-soft);
+}
+.question-content.glass-panel {
+  max-width: 850px;
+  min-height: 0;
+  padding: 36px;
+  margin-bottom: 32px;
+}
+.question-content h1 {
+  font-weight: 700;
+}
+.question-word {
+  font-weight: 650;
+}
+.answer-option.glass-control {
+  border-radius: 22px;
+  font-size: 15px;
+}
+.answer-option.selected {
+  border-color: var(--accent);
+  background: var(--accent-tint);
+}
+.answer-option.correct-answer {
+  border-color: var(--green);
+  color: var(--green);
+  background: rgba(69,139,94,.09);
+}
+.answer-option.wrong-answer {
+  border-color: var(--error);
+  color: var(--error);
+  background: rgba(190,79,57,.09);
+}
+.option-key {
+  background: var(--glass-inset);
+  border-color: var(--glass-edge-soft);
+}
+.typing-answer input.glass-control {
+  border: 1px solid var(--glass-edge-soft);
+}
+.feedback-copy {
+  font-size: 15px;
+}
+.feedback-copy p {
+  font-size: 13px;
+}
+.feedback-copy small {
+  font-size: 12px;
+}
+.answer-bottom {
+  margin-top: 32px;
+  gap: 20px;
+}
+.answer-bottom.feedback-correct, .answer-bottom.feedback-wrong {
+  flex-wrap: wrap;
+}
+.answer-bottom > .btn {
+  margin-left: auto;
+}
+.new-word-intro {
+  max-width: 850px;
+}
+.new-word-intro h1 {
+  font-size: 36px;
+  font-weight: 750;
+}
+.intro-list {
+  gap: 20px;
+}
+.intro-list article.glass-panel {
+  padding: 24px;
+  border-radius: 28px;
+}
+.intro-list h2 {
+  font-size: 25px;
+}
+.intro-list article > p, .intro-list article > blockquote {
+  font-size: 14px;
+}
+.result-page.glass-panel {
+  max-width: 850px;
+  padding: 40px;
+  margin: 24px auto 48px;
+}
+.result-page h1 {
+  font-size: 36px;
+  font-weight: 750;
+}
+.result-metrics.glass-inset {
+  padding: 28px 20px;
+  gap: 48px;
+}
+.result-metrics strong {
+  font-weight: 700;
+}
+.result-metrics span {
+  font-size: 13px;
+}
+.result-changes > div {
+  font-size: 14px;
+  padding: 14px 0;
+}
+.result-actions {
+  flex-wrap: wrap;
+}
+/* Preserve the card's 3D flip. Blur the stationary bezel, not its rotating faces. */
+.flashcard-workspace {
+  max-width: 720px;
+  margin-top: 32px;
+}
+.flash-bezel {
+  padding: 0;
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  border-radius: 40px;
+}
+.flashcard {
+  height: 360px;
+  border-radius: 40px;
+}
+.flash-face.glass-panel {
+  padding: 36px;
+  border-radius: 40px;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.flash-front > strong {
+  font-size: 56px;
+  font-weight: 700;
+}
+.flash-back > strong {
+  font-weight: 650;
+}
+.flash-example {
+  max-width: 55ch;
+  font-size: 15px;
+}
+.flash-pronounce {
+  min-height: 40px;
+  font-size: 14px;
+}
+.flash-self > .btn {
+  min-width: 180px;
+}
+.flash-controls {
+  max-width: 240px;
+}
+.flash-controls > .icon-button {
+  width: 44px;
+  height: 44px;
+}
+/* Progress is composed from the same glass panel and inset primitives. */
+.progress-overview.glass-panel {
+  padding: 32px 36px;
+  margin: 24px 0;
+}
+.mastery-number > strong {
+  font-weight: 750;
+  font-size: 84px;
+  margin: 12px 0 8px;
+}
+.progress-stats {
+  gap: 48px;
+}
+.progress-stats strong {
+  font-weight: 700;
+  font-size: 42px;
+}
+.progress-stats span {
+  font-size: 13px;
+}
+.progress-layout {
+  gap: 24px;
+  grid-template-columns: 1.15fr 1fr;
+}
+.level-journey .panel-core {
+  padding: 28px;
+}
+.panel-top h2 {
+  font-size: 20px;
+  font-weight: 700;
+}
+.weak-words.glass-panel {
+  padding: 28px;
+}
+.weak-words > p {
+  font-size: 13px;
+}
+.journey-row strong, .weak-row strong {
+  font-size: 15px;
+  font-weight: 600;
+}
+.journey-track {
+  height: 7px;
+  background: var(--glass-inset);
+  border: 1px solid var(--glass-edge-soft);
+}
+.weak-row div > span {
+  font-size: 12px;
+}
+.maintenance-note > p {
+  font-size: 12px;
+}
+.history-section.glass-panel {
+  margin-top: 24px;
+  padding: 28px;
+}
+.history-row {
+  font-size: 13px;
+  padding: 18px 0;
+}
+.history-row:last-child {
+  border-bottom: 0;
+}
+.history-row > span:last-child {
+  font-size: 12px;
+}
+/* Dialogs stay legible over the page; all fields use the shared control material. */
+.modal-overlay {
+  background: rgba(82,65,58,.23);
+  -webkit-backdrop-filter: blur(5px);
+  backdrop-filter: blur(5px);
+}
+html[data-theme="dark"] .modal-overlay {
+  background: rgba(8,7,7,.48);
+}
+.modal.glass-panel {
+  border-radius: 32px;
+  padding: 32px;
+}
+.modal-header h2 {
+  font-size: 26px;
+  font-weight: 750;
+}
+.modal-description {
+  font-size: 14px;
+}
+#word-form label {
+  font-size: 13px;
+  font-weight: 600;
+}
+#word-form .glass-control {
+  background: var(--glass-control);
+  border: 1px solid var(--glass-edge-soft);
+  font-size: 15px;
+  border-radius: 16px;
+}
+.field-help {
+  font-size: 12px;
+}
+.form-error {
+  font-size: 13px;
+}
+.form-bottom {
+  gap: 16px;
+}
+.form-bottom > span {
+  font-size: 11px;
+}
+.detail-word h3 {
+  font-weight: 750;
+}
+.detail-example.glass-inset {
+  padding: 20px;
+}
+.detail-example p {
+  font-size: 15px;
+}
+.about-content {
+  font-size: 14px;
+}
+.toast {
+  background: var(--glass-dialog);
+  border: 1px solid var(--glass-edge);
+  box-shadow: inset 0 1px 1px var(--glass-reflection), 0 10px 28px var(--glass-shadow);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  font-size: 14px;
+  border-radius: 20px;
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass-panel, .glass-control, .modal, .toast {
+    background: #eee5df;
+  }
+  html[data-theme="dark"] :is(.glass-panel, .glass-control, .modal, .toast) {
+    background: #292423;
+  }
+}
+@media (max-width: 1200px) {
+  .practice-setup {
+    grid-template-columns: 1fr 1.1fr;
+  }
+  .session-intro.glass-panel, .session-plan.glass-panel {
+    padding: 28px;
+  }
+  .session-intro__heading > h2 {
+    font-size: 28px;
+  }
+  .session-facts {
+    gap: 24px;
+  }
+  .progress-overview.glass-panel {
+    padding: 28px;
+  }
+}
+@media (max-width: 1000px) {
+  .practice-setup, .progress-layout {
+    grid-template-columns: 1fr;
+  }
+  .session-intro > .btn {
+    max-width: 360px;
+    margin-top: 12px;
+  }
+  .session-plan.glass-panel {
+    border-top: 1px solid var(--glass-edge);
+  }
+  .progress-overview {
+    gap: 24px;
+  }
+  .progress-stats {
+    gap: 24px;
+  }
+  .progress-stats strong {
+    font-size: 32px;
+  }
+}
+@media (max-width: 767px) {
+  .app-shell .top-actions .btn-primary {
+    font-size: 14px;
+    padding: 10px 14px;
+    min-height: 44px;
+    gap: 6px;
+  }
+  .app-shell .top-actions .btn-primary > .icon {
+    width: 16px;
+    height: 16px;
+  }
+  .btn-primary {
+    font-size: 16px;
+    padding-left: 18px;
+  }
+  .btn-secondary, .btn-danger {
+    font-size: 15px;
+    padding: 10px 18px;
+  }
+  .btn-primary .btn-icon {
+    width: 30px;
+    height: 30px;
+  }
+  .app-shell:not([data-view="dashboard"]) .page-heading {
+    margin-bottom: 24px;
+  }
+  .app-shell:not([data-view="dashboard"]) .page-heading h1 {
+    font-size: 30px;
+  }
+  .app-shell:not([data-view="dashboard"]) .page-heading p {
+    font-size: 14px;
+  }
+  .app-shell .page-heading > select {
+    max-width: 140px;
+    font-size: 12px;
+  }
+  .glass-segmented {
+    gap: 4px;
+    padding: 5px;
+    border-radius: 24px;
+  }
+  .glass-segmented > button {
+    font-size: 12px;
+    min-height: 38px;
+    padding: 8px 12px;
+  }
+  .library-tools {
+    margin-top: 20px;
+  }
+  .search-input input {
+    font-size: 16px;
+  }
+  .library-tools > select {
+    font-size: 14px;
+    min-height: 46px;
+  }
+  .table-container.glass-panel {
+    border-radius: 26px;
+  }
+  .word-table tr {
+    padding: 20px;
+    gap: 8px 12px;
+  }
+  .word-table tr:last-child {
+    border-bottom: 0;
+  }
+  .word-table td {
+    padding: 0;
+  }
+  .word-table .meaning-cell {
+    font-size: 14px !important;
+  }
+  .table-word .icon-button {
+    width: 32px;
+    height: 32px;
+  }
+  .row-actions .icon-button {
+    width: 38px;
+    height: 38px;
+  }
+  .word-table .level-tag {
+    font-size: 11px;
+  }
+  .due-label {
+    font-size: 11px;
+  }
+  .list-footer {
+    font-size: 11px;
+  }
+  .practice-setup {
+    margin-top: 20px;
+    gap: 20px;
+  }
+  .session-intro.glass-panel, .session-plan.glass-panel {
+    padding: 26px;
+    border-radius: 30px;
+  }
+  .session-intro__heading > h2 {
+    font-size: 27px;
+  }
+
+  .session-facts {
+    gap: 24px;
+    margin: 24px 0;
+  }
+  .session-facts strong {
+    font-size: 30px;
+  }
+  .session-facts > span {
+    font-size: 11px;
+  }
+  .session-intro > .btn {
+    min-width: 0;
+    max-width: none;
+  }
+  .session-plan h3 {
+    font-size: 18px;
+  }
+  .session-word-list {
+    gap: 8px 18px;
+  }
+  .session-word-list > div {
+    font-size: 13px;
+  }
+  .learning-header.glass-control {
+    margin: 12px auto 20px;
+    padding: 10px 12px;
+    gap: 12px;
+  }
+  .question-content.glass-panel {
+    padding: 24px;
+    border-radius: 30px;
+  }
+  .question-content h1 {
+    font-size: 25px;
+  }
+  .question-word {
+    font-size: 32px;
+  }
+  .answer-option.glass-control {
+    font-size: 14px;
+    padding: 14px;
+    border-radius: 18px;
+  }
+  .answer-bottom {
+    margin-top: 24px;
+  }
+  .answer-bottom > .btn {
+    min-width: 0;
+  }
+  .feedback-copy {
+    font-size: 14px;
+  }
+  .feedback-copy small {
+    font-size: 11px;
+  }
+  .new-word-intro h1 {
+    font-size: 30px;
+  }
+  .intro-list article.glass-panel {
+    padding: 22px;
+  }
+  .intro-list h2 {
+    font-size: 24px;
+  }
+  .intro-list article > p, .intro-list article > blockquote {
+    font-size: 14px;
+  }
+  .result-page.glass-panel {
+    padding: 28px 22px;
+    border-radius: 30px;
+  }
+  .result-page h1 {
+    font-size: 28px;
+  }
+  .result-metrics.glass-inset {
+    padding: 22px 12px;
+    gap: 18px;
+  }
+  .result-metrics strong {
+    font-size: 30px;
+  }
+  .result-metrics span {
+    font-size: 11px;
+  }
+  .result-changes > div {
+    font-size: 12px;
+  }
+  .flashcard-workspace {
+    margin-top: 24px;
+  }
+  .flashcard {
+    height: 340px;
+    border-radius: 34px;
+  }
+  .flash-face.glass-panel {
+    padding: 26px;
+    border-radius: 34px;
+  }
+  .flash-front > strong {
+    font-size: 40px;
+  }
+  .flash-back > strong {
+    font-size: 24px;
+  }
+  .flash-example {
+    font-size: 14px;
+  }
+  .flash-self {
+    gap: 12px;
+  }
+  .flash-self > .btn {
+    min-width: 0;
+  }
+  .progress-overview.glass-panel {
+    padding: 26px;
+    flex-direction: column;
+    gap: 24px;
+    border-radius: 30px;
+  }
+  .mastery-number > strong {
+    font-size: 72px;
+  }
+  .progress-stats {
+    width: 100%;
+    flex-direction: row;
+    gap: 24px;
+  }
+  .progress-stats > div {
+    flex: 1;
+  }
+  .progress-stats strong {
+    font-size: 32px;
+  }
+  .progress-stats span {
+    font-size: 12px;
+  }
+  .level-journey .panel-core, .weak-words.glass-panel, .history-section.glass-panel {
+    padding: 24px;
+  }
+  .panel-top h2 {
+    font-size: 18px;
+  }
+  .weak-words > p {
+    font-size: 13px;
+  }
+  .journey-row {
+    gap: 10px;
+  }
+  .journey-row strong {
+    font-size: 13px;
+  }
+  .journey-number {
+    width: 18px;
+  }
+  .journey-row > span:nth-last-child(2) {
+    min-width: 32px;
+    font-size: 18px;
+  }
+  .weak-row {
+    gap: 10px;
+  }
+  .weak-row strong {
+    font-size: 14px;
+  }
+  .weak-row div > span {
+    font-size: 11px;
+  }
+  .weak-row .level-tag {
+    font-size: 10px;
+    padding: 4px 7px;
+    white-space: nowrap;
+  }
+  .history-row {
+    grid-template-columns: 1.1fr 1fr;
+    gap: 8px;
+    font-size: 12px;
+  }
+  .history-row > span:nth-child(2) {
+    text-align: right;
+  }
+  .history-row > span:last-child {
+    font-size: 11px;
+  }
+  .modal-overlay {
+    padding: 14px;
+  }
+  .modal.glass-panel {
+    padding: 24px;
+    border-radius: 28px;
+    max-height: calc(100dvh - 28px);
+  }
+  .modal-header h2 {
+    font-size: 23px;
+  }
+  #word-form .glass-control {
+    font-size: 16px;
+  }
+  .form-bottom {
+    flex-wrap: wrap;
+  }
+  .form-bottom > .btn {
+    width: 100%;
+  }
+  .modal-actions {
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .modal-actions > .btn {
+    flex: 1;
+  }
+  .detail-example p {
+    font-size: 14px;
+  }
+}
+/* Functional pages need clearance for heading actions and the study toolbar. */
+@media (min-width: 768px) {
+  .app-shell:not([data-view="dashboard"]) .topbar {
+    height: 68px;
+  }
+}
+.practice-setup, .progress-layout {
+  align-items: start;
+}
+.session-intro > .btn {
+  margin-top: 0;
+}
+@media (max-width: 767px) {
+  /* Keep the last control above the fixed mobile navigation on every route. */
+  .app-shell:not([data-view="dashboard"]) .workspace {
+    padding-bottom: calc(108px + env(safe-area-inset-bottom));
+  }
+}
+html[data-theme="dark"] .app-shell :is(.top-search, .theme-toggle) {
+  background: var(--glass-control);
+  border-color: var(--glass-edge);
+  box-shadow: inset 0 1px 1px var(--glass-reflection);
+}
+#word-form .glass-control {
+  font-weight: 500;
+}
+@media (max-width: 767px) {
+  html {
+    scroll-padding-top: 12px;
+    scroll-padding-bottom: calc(96px + env(safe-area-inset-bottom));
+  }
+}
+
+.session-intro__heading {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  min-width: 0;
+}
+.session-intro__heading > .round-emblem {
+  flex: 0 0 64px;
+  width: 64px;
+  height: 64px;
+  margin: 0;
+}
+.session-intro__heading > h2 {
+  margin: 0;
+  font-size: clamp(22px, 1.9vw, 32px);
+  white-space: nowrap;
+}
+@media (max-width: 767px) {
+  .session-intro__heading { gap: 12px; }
+  .session-intro__heading > .round-emblem {
+    flex-basis: 48px;
+    width: 48px;
+    height: 48px;
+    border-radius: 18px;
+  }
+  .session-intro__heading > .round-emblem > .icon { width: 28px; height: 28px; }
+  .session-intro__heading > h2 { font-size: clamp(18px, 5.4vw, 24px); }
+}
