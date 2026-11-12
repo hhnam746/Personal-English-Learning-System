@@ -6,7 +6,21 @@ using Npgsql;
 using VoP.Repository;
 using VoP.Service.Common;
 
+#if DEBUG
+// Rider's .NET Project runner may bypass launchSettings.json entirely.
+var hostConfiguration = new ConfigurationBuilder()
+    .AddEnvironmentVariables("ASPNETCORE_")
+    .AddEnvironmentVariables("DOTNET_")
+    .AddCommandLine(args)
+    .Build();
+var builder = WebApplication.CreateBuilder(new WebApplicationOptions
+{
+    Args = args,
+    EnvironmentName = hostConfiguration[HostDefaults.EnvironmentKey] ?? Environments.Development
+});
+#else
 var builder = WebApplication.CreateBuilder(args);
+#endif
 // shortcut: one local learner, no account model; add authentication and per-user ownership before remote hosting.
 builder.WebHost.UseUrls(builder.Configuration["urls"] ?? "http://127.0.0.1:5080");
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
@@ -65,6 +79,7 @@ if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
+    app.MapGet("/", () => Results.Redirect("/swagger")).ExcludeFromDescription();
 }
 app.MapControllers();
 app.MapGet("/health", async (AppDbContext db, CancellationToken ct) =>

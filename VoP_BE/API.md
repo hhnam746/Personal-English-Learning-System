@@ -19,11 +19,11 @@ No authentication/user model is part of the supplied schema. The API defaults to
 
 JSON camelCase fields; enum values snake_case strings; unknown input properties and numeric enums rejected. Flashcard `rating` and suspension `isSuspended` are required; missing/null ratings and null nested meaning/example items return400 without writing records. Client never supplies correctness, SRS level, timestamps or snapshots. Errors use RFC ProblemDetails (`status`, `title`, `traceId`); model validation includes `errors`. 400 invalid input, 404 missing resource, 409 duplicate or invalid state, 500 generic server error (details in server logs).
 
-Paged responses: `{items, pageNumber, pageSize, totalItems}`. Default `page=1&pageSize=20`, maximum pageSize 100, maximum page 100000. UTC timestamps; dashboard calendar days UTC. Vocabulary IDs in learning/flashcard routes refer to vocabulary, not a separate progress-row ID.
+Paged responses: `{items, pageNumber, pageSize, totalItems}`. Default `page=1&pageSize=20`, maximum pageSize 100, maximum page 100000. UTC timestamps; dashboard calendar days UTC. Vocabulary responses include additive `level`, `nextReviewAt`, `isSuspended` fields. Vocabulary IDs in learning/flashcard routes refer to vocabulary, not a separate progress-row ID.
 
 | Feature | Method | Route | Input / result |
 |---|---|---|---|
-| Vocabulary | GET | `/api/vocabularies` | `search`, `page`, `pageSize`; term or Vietnamese meaning substring |
+| Vocabulary | GET | `/api/vocabularies` | `search`, `level=0..5`, `dueOnly`, `sort=recent|alpha|level`, `page`, `pageSize`; filters/count/sort run before paging |
 | Vocabulary | POST | `/api/vocabularies` | VocabularyRequest below; 201 + Location |
 | Vocabulary | GET | `/api/vocabularies/{id}` | Word with all ordered meanings/examples |
 | Vocabulary | PUT | `/api/vocabularies/{id}` | Full aggregate replacement; IDs retain nested objects |

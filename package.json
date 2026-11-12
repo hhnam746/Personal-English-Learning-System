@@ -1,0 +1,15 @@
+{
+  "name": "vop",
+  "private": true,
+  "packageManager": "pnpm@11.5.1",
+  "engines": {
+    "node": ">=24.0.0",
+    "pnpm": ">=11 <12"
+  },
+  "scripts": {
+    "dev": "concurrently --kill-others --names BE,FE \"dotnet run --project VoP_BE/VoP.Api --no-launch-profile -- --environment Development\" \"pnpm --dir VoP_FE dev\""
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.7"
+  }
+}

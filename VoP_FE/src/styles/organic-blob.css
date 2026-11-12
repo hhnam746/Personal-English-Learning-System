@@ -1,0 +1,356 @@
+/* Shape, clipped backdrop and HTML content are independent reusable layers. */
+.organic-blob {
+  --blob-fill: rgba(255, 255, 255, 0.16);
+  --blob-fallback: rgba(250, 240, 235, 0.84);
+  --blob-wash: rgba(253, 95, 1, 0.08);
+  --blob-volume-center: rgba(255, 255, 255, 0.015);
+  --blob-volume-mid: rgba(255, 247, 238, 0.08);
+  --blob-volume-edge: rgba(255, 255, 255, 0.72);
+  --blob-face-light: rgba(255, 248, 244, 0.25);
+  --blob-face-peach: rgba(255, 221, 202, 0.16);
+  --blob-shadow-fill: rgba(239, 216, 203, 0.32);
+  --blob-rim-bright: rgba(255, 255, 255, 0.92);
+  --blob-rim-soft: rgba(255, 255, 255, 0.48);
+  --blob-rim-faint: rgba(255, 255, 255, 0.16);
+  --blob-blur: 8px;
+  --brain-top: #ffb04a;
+  --brain-peach: #ffd79f;
+  --brain-temporal-mid: #ffc36f;
+  --brain-temporal-edge: #ffedc4;
+  --brain-base: #ff951c;
+  --brain-cream: #fff7e3;
+  --brain-edge: #fff3d8;
+  --brain-crease: #fff1cf;
+  position: relative;
+  isolation: isolate;
+  min-width: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+}
+html[data-theme='dark'] .organic-blob {
+  --blob-fill: rgba(255, 255, 255, 0.035);
+  --blob-volume-center: rgba(255, 255, 255, 0.005);
+  --blob-volume-mid: rgba(255, 236, 220, 0.025);
+  --blob-volume-edge: rgba(255, 255, 255, 0.13);
+  --blob-face-light: rgba(255, 241, 226, 0.04);
+  --blob-face-peach: rgba(229, 133, 77, 0.035);
+  --blob-shadow-fill: rgba(26, 22, 20, 0.4);
+  --blob-fallback: rgba(45, 39, 38, 0.95);
+  --blob-wash: rgba(253, 95, 1, 0.075);
+  --blob-rim-bright: rgba(255, 255, 255, 0.35);
+  --blob-rim-soft: rgba(255, 255, 255, 0.16);
+  --blob-rim-faint: rgba(255, 255, 255, 0.055);
+  --brain-top: #ffb96e;
+  --brain-peach: #f5cb91;
+  --brain-temporal-mid: #efb36e;
+  --brain-temporal-edge: #f8dbb0;
+  --brain-base: #ed902f;
+  --brain-cream: #ffe7c3;
+  --brain-edge: #ffe2bc;
+  --brain-crease: #ffe1b7;
+}
+.organic-blob__defs {
+  position: absolute;
+  inset: 0 auto auto 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.organic-blob__glass,
+.organic-blob__shadow,
+.organic-blob__edge,
+.organic-blob__accent {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.organic-blob__glass {
+  z-index: 0;
+  clip-path: var(--blob-clip);
+  -webkit-clip-path: var(--blob-clip);
+  background:
+    radial-gradient(ellipse at 50% 0, var(--blob-wash), transparent 64%),
+    var(--blob-fill);
+  -webkit-backdrop-filter: blur(var(--blob-blur)) saturate(1.04);
+  backdrop-filter: blur(var(--blob-blur)) saturate(1.04);
+}
+.organic-blob__accent {
+  z-index: -1;
+  opacity: 0.72;
+}
+html[data-theme='dark'] .organic-blob__accent {
+  opacity: 0.3;
+}
+.organic-blob__edge {
+  z-index: 1;
+  overflow: visible;
+}
+.organic-blob__outline,
+.organic-blob__highlight {
+  fill: none;
+  vector-effect: non-scaling-stroke;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.organic-blob__outline {
+  stroke-width: 1.6;
+}
+.organic-blob__highlight {
+  stroke-width: 2.5;
+  opacity: 0.75;
+}
+.organic-blob__highlight--lower {
+  stroke-width: 2.1;
+  opacity: 0.55;
+}
+.blob-rim-bright {
+  stop-color: var(--blob-rim-bright);
+}
+.blob-rim-soft {
+  stop-color: var(--blob-rim-soft);
+}
+.blob-rim-faint {
+  stop-color: var(--blob-rim-faint);
+}
+.organic-blob__content {
+  position: relative;
+  z-index: 2;
+  min-width: 0;
+}
+
+/* Vocabulary variation: content is HTML, only the material follows the path. */
+.vocabulary-summary.organic-blob--summary {
+  display: block;
+  min-height: 320px;
+  padding: 0;
+  border-radius: 0;
+}
+.organic-blob--summary > .organic-blob__content {
+  min-height: 320px;
+  padding: 46px 13% 48px 15%;
+  display: flex;
+  flex-direction: column;
+}
+.organic-blob--summary .vocab-total {
+  margin: 14px 0 20px;
+}
+.organic-blob--summary .vocab-total strong {
+  font-size: clamp(74px, 5.7vw, 96px);
+}
+.organic-blob--summary .meter {
+  margin-top: auto;
+  height: 12px;
+  background: rgba(125, 110, 111, 0.1);
+  border: 1px solid var(--blob-rim-soft);
+}
+.organic-blob--summary .meter > span {
+  background: var(--accent);
+}
+.organic-blob--summary .vocab-breakdown {
+  margin-top: 16px;
+  gap: 8px 12px;
+  font-size: 12px;
+}
+.organic-blob--summary .vocab-breakdown .text-link {
+  font-size: 12px;
+}
+
+/* Brain variation: no extra text, glow or animated lighting. */
+.organic-blob--brain {
+  aspect-ratio: 1 / 0.98;
+  width: var(--brain-blob-width, 176px);
+}
+.organic-blob--brain > .organic-blob__content {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 15% 13% 16% 16%;
+}
+.brain-illustration {
+  display: block;
+  width: 100%;
+  max-width: 130px;
+  height: auto;
+  overflow: visible;
+}
+
+/* Only the existing accuracy panel makes space for the new decorative blob. */
+.accuracy-panel.accuracy-panel--with-brain {
+  --brain-blob-width: clamp(132px, 11.6vw, 190px);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 250px;
+}
+.accuracy-panel--with-brain > :is(h2, .accuracy-total, p) {
+  max-width: calc(100% - var(--brain-blob-width) - 6px);
+}
+.accuracy-panel--with-brain > .organic-blob--brain {
+  position: absolute;
+  right: 10px;
+  top: 15px;
+}
+.accuracy-panel--with-brain > .meter {
+  margin-top: auto;
+}
+
+@supports not (
+  (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))
+) {
+  .organic-blob__glass {
+    background: var(--blob-fallback);
+  }
+}
+@media (max-width: 1200px) {
+  .vocabulary-summary.organic-blob--summary,
+  .organic-blob--summary > .organic-blob__content {
+    min-height: 310px;
+  }
+  .organic-blob--summary > .organic-blob__content {
+    padding-top: 44px;
+    padding-bottom: 46px;
+  }
+  .organic-blob--summary .vocab-total strong {
+    font-size: 78px;
+  }
+}
+@media (max-width: 1000px) {
+  .accuracy-panel.accuracy-panel--with-brain {
+    --brain-blob-width: 160px;
+    min-height: 236px;
+  }
+  .accuracy-panel--with-brain > .organic-blob--brain {
+    right: 24px;
+    top: 10px;
+  }
+  .accuracy-panel--with-brain .accuracy-total {
+    margin: 18px 0 4px;
+  }
+  .accuracy-panel--with-brain > p {
+    margin-bottom: 22px;
+  }
+}
+@media (max-width: 767px) {
+  .vocabulary-summary.organic-blob--summary,
+  .organic-blob--summary > .organic-blob__content {
+    min-height: 298px;
+  }
+  .organic-blob--summary > .organic-blob__content {
+    padding: 44px 13% 46px 15%;
+  }
+  .organic-blob--summary .vocab-total {
+    margin: 14px 0 20px;
+  }
+  .organic-blob--summary .vocab-total strong {
+    font-size: 76px;
+  }
+  .organic-blob--summary .vocab-breakdown {
+    font-size: 11px;
+    gap: 7px 10px;
+  }
+  .organic-blob--summary .vocab-breakdown .text-link {
+    font-size: 11px;
+  }
+  .accuracy-panel.accuracy-panel--with-brain {
+    --brain-blob-width: 132px;
+    min-height: 252px;
+  }
+  .accuracy-panel--with-brain > .organic-blob--brain {
+    right: 8px;
+    top: 32px;
+  }
+  .accuracy-panel--with-brain > :is(h2, .accuracy-total, p) {
+    max-width: calc(100% - var(--brain-blob-width) + 6px);
+  }
+  .accuracy-panel--with-brain .accuracy-total {
+    font-size: 60px;
+  }
+  .accuracy-panel--with-brain .accuracy-total > span {
+    font-size: 40px;
+  }
+}
+@media (max-width: 359px) {
+  .organic-blob--summary > .organic-blob__content {
+    padding-left: 14%;
+    padding-right: 12%;
+  }
+  .organic-blob--summary .vocab-breakdown {
+    gap: 6px;
+  }
+  .accuracy-panel.accuracy-panel--with-brain {
+    --brain-blob-width: 110px;
+  }
+}
+
+.organic-blob__shadow {
+  z-index: -1;
+  overflow: visible;
+}
+.organic-blob__thickness,
+.organic-blob__inner-edge {
+  fill: none;
+  vector-effect: non-scaling-stroke;
+  stroke-linejoin: round;
+}
+.organic-blob__thickness {
+  stroke-width: 7px;
+  opacity: 0.22;
+}
+.organic-blob__inner-edge {
+  stroke-width: 1.2px;
+  opacity: 0.44;
+}
+.organic-blob--accuracy {
+  padding: 0;
+}
+.organic-blob--accuracy > .organic-blob__content {
+  display: flex;
+  flex-direction: column;
+  min-height: 244px;
+  padding: 28px 40px 30px;
+}
+
+/* Reference-traced brain: soft rounded volumes and a few major sulci. */
+.brain-surface {
+  stroke: var(--brain-edge);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.brain-sulcus {
+  fill: none;
+  stroke: var(--brain-crease);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.brain-volume-edge {
+  fill: none;
+  stroke: var(--brain-cream);
+  stroke-width: 2.1;
+  stroke-linecap: round;
+  opacity: 0.42;
+}
+
+/* Warm peach glass around the honey-orange illustration, matching the reference. */
+.organic-blob--brain > .organic-blob__glass {
+  background:
+    radial-gradient(
+      ellipse at 72% 27%,
+      rgba(255, 149, 81, 0.25),
+      transparent 70%
+    ),
+    var(--blob-fill);
+}
+html[data-theme='dark'] .organic-blob--brain > .organic-blob__glass {
+  background:
+    radial-gradient(
+      ellipse at 72% 27%,
+      rgba(224, 120, 55, 0.13),
+      transparent 70%
+    ),
+    var(--blob-fill);
+}

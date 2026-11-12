@@ -142,6 +142,14 @@ try
     await Send(HttpMethod.Get, "/api/vocabularies?pageSize=101", null, 400);
     var search = await Send(HttpMethod.Get, "/api/vocabularies?search=ngh%C4%A9a%20apple");
     Check(search["totalItems"]!.GetValue<int>() == 1, "Vietnamese meaning search");
+    var noLearned = await Send(HttpMethod.Get, "/api/vocabularies?level=1");
+    Check(noLearned["totalItems"]!.GetValue<int>() == 0, "Vocabulary level filter applies before paging");
+    var combined = await Send(HttpMethod.Get, "/api/vocabularies?level=0&search=apple&sort=alpha&pageSize=1");
+    Check(combined["totalItems"]!.GetValue<int>() == 1 && combined["items"]![0]!["term"]!.GetValue<string>() == "apple", "Combined search and new-word filter");
+    var alphaPage = await Send(HttpMethod.Get, "/api/vocabularies?sort=alpha&page=2&pageSize=1");
+    Check(alphaPage["items"]![0]!["term"]!.GetValue<string>() == "banana" && alphaPage["totalItems"]!.GetValue<int>() == 4, "Alphabetical sorting precedes paging");
+    await Send(HttpMethod.Get, "/api/vocabularies?level=6", null, 400);
+    await Send(HttpMethod.Get, "/api/vocabularies?sort=invalid", null, 400);
     await Send(HttpMethod.Patch, $"/api/vocabularies/{ids[0]}/pronunciation", new { ipa = "/æpəl/", audioUrl = "file:///private/audio.mp3" }, 400);
     var session = await Start(ids);
     await Send(HttpMethod.Post, "/api/practice-sessions", new { vocabularyIds = new[] { ids[0] } }, 409);
@@ -162,6 +170,22 @@ try
     var learned = await db.LearningProgress.FirstAsync(p => p.Level == 1);
     var learnedId = learned.VocabularyId.ToString();
     var oldNext = learned.NextReviewAt;
+    var learnedPage = await Send(HttpMethod.Get, "/api/vocabularies?level=1&sort=level");
+    Check(learnedPage["totalItems"]!.GetValue<int>() == 3 && learnedPage["items"]!.AsArray().All(v => v!["level"]!.GetValue<int>() == 1), "Vocabulary response carries accurate learning state");
+    var cardPage = await Send(HttpMethod.Get, "/api/flashcards?level=1");
+    Check(cardPage["items"]!.AsArray().All(v => v!["level"]!.GetValue<int>() == 1), "Flashcard learning metadata stays consistent");
+
+    learned.NextReviewAt = DateTimeOffset.UtcNow.AddMinutes(-1);
+    await db.SaveChangesAsync();
+    var dueList = await Send(HttpMethod.Get, "/api/vocabularies?dueOnly=true&level=1&sort=alpha");
+    Check(dueList["totalItems"]!.GetValue<int>() == 1 && Id(dueList["items"]![0]!.AsObject()) == learnedId, "Due and level filters combine before count/paging");
+    learned.IsSuspended = true;
+    await db.SaveChangesAsync();
+    var suspendedDue = await Send(HttpMethod.Get, "/api/vocabularies?dueOnly=true");
+    Check(suspendedDue["totalItems"]!.GetValue<int>() == 0, "Due filter excludes suspended vocabulary");
+    learned.IsSuspended = false;
+    learned.NextReviewAt = oldNext;
+    await db.SaveChangesAsync();
     await Send(HttpMethod.Post, $"/api/flashcards/{learnedId}/reviews", new { }, 400);
     await Send(HttpMethod.Post, $"/api/flashcards/{learnedId}/reviews", new { rating = (string?)null }, 400);
     await Send(HttpMethod.Post, $"/api/flashcards/{learnedId}/reviews", new { rating = "invalid" }, 400);
@@ -263,6 +287,15 @@ try
     await Send(HttpMethod.Post,$"/api/practice-sessions/{Id(autoSession)}/abandon");
     Check(Rules.Normalize("  APPLE’s! ") == "apple's", "Answer normalization NFKC/apostrophe/punctuation");
     Console.WriteLine($"SUCCESS: {checks} checks; isolated database retained: {database}");
+    if (args.Contains("--serve"))
+    {
+        var stopFile = Path.Combine(Path.GetTempPath(), $"vop-e2e-stop-{port}");
+        Console.WriteLine($"E2E_API_URL=http://127.0.0.1:{port}");
+        Console.WriteLine($"E2E_STOP_FILE={stopFile}");
+        Console.Out.Flush();
+        while (!File.Exists(stopFile)) await Task.Delay(250);
+    }
+
 }
 finally
 {

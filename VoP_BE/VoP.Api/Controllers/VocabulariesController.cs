@@ -10,7 +10,10 @@ public sealed class VocabulariesController(IService service) : ControllerBase
     public async Task<IActionResult> List([FromQuery] string? search,
          [FromQuery] int page = 1,
          [FromQuery] int pageSize = 20,
-         CancellationToken ct = default) => Ok(await service.List(search, page, pageSize, ct));
+         [FromQuery] int? level = null,
+         [FromQuery] bool dueOnly = false,
+         [FromQuery] string sort = "recent",
+         CancellationToken ct = default) => Ok(await service.List(search, page, pageSize, ct, level, dueOnly, sort));
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> Get(Guid id, CancellationToken ct) => Ok(await service.Get(id, ct));
     [HttpPost]

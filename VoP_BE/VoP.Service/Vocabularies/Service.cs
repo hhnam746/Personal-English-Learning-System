@@ -8,14 +8,29 @@ namespace VoP.Service.Vocabularies;
 public sealed class Service(AppDbContext db) : IService
 {
     private IQueryable<Vocabulary> Query => db.Vocabularies
+        .Include(v => v.LearningProgress)
         .Include(v => v.VocabularyMeanings)
         .ThenInclude(m => m.VocabularyExamples)
         .Where(v => v.DeletedAt == null);
 
-    public async Task<Page<VocabularyResponse>> List(string? search, int page, int pageSize, CancellationToken ct)
+    public async Task<Page<VocabularyResponse>> List(string? search, int page, int pageSize, CancellationToken ct, int? level = null, bool dueOnly = false, string sort = "recent")
     {
         Rules.Paging(page, pageSize);
+        Rules.Require(level == null || level is >= 0 and <= 5, "Level must be 0..5.");
+        Rules.Require(sort is "recent" or "alpha" or "level", "Sort must be recent, alpha or level.");
         var query = Query.AsNoTracking();
+        if (level != null)
+        {
+            query = query.Where(v => (v.LearningProgress == null ? 0 : v.LearningProgress.Level) == level);
+        }
+        if (dueOnly)
+        {
+            var now = DateTimeOffset.UtcNow;
+            query = query.Where(v => v.LearningProgress != null
+                && !v.LearningProgress.IsSuspended
+                && v.LearningProgress.NextReviewAt <= now);
+        }
+
         if (!string.IsNullOrWhiteSpace(search))
         {
             var term = Rules.Normalize(search);
@@ -23,9 +38,13 @@ public sealed class Service(AppDbContext db) : IService
                 .Where(v => v.NormalizedTerm.Contains(term) || v.VocabularyMeanings.Any(m => m.MeaningVi.ToLower().Contains(term)));
         }
         var total = await query.CountAsync(ct);
-        return new((await query
-            .OrderByDescending(v => v.CreatedAt)
-            .ThenBy(v => v.Id)
+        var ordered = sort switch
+        {
+            "alpha" => query.OrderBy(v => v.NormalizedTerm).ThenBy(v => v.Id),
+            "level" => query.OrderBy(v => v.LearningProgress == null ? 0 : v.LearningProgress.Level).ThenBy(v => v.NormalizedTerm).ThenBy(v => v.Id),
+            _ => query.OrderByDescending(v => v.CreatedAt).ThenBy(v => v.Id)
+        };
+        return new((await ordered
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync(ct))

@@ -1,0 +1,38 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import './styles/styles.css';
+@import './styles/components.css';
+@import './styles/liquid.css';
+@import './styles/glass-system.css';
+@import './styles/organic-blob.css';
+@import './styles/dashboard.css';
+@import './styles/integration.css';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-input: var(--border);
+  --color-ring: var(--ring);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--foreground);
+  --color-accent: var(--secondary);
+  --color-accent-foreground: var(--foreground);
+  --color-destructive: var(--destructive);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+}
+:root {
+  --border: var(--line);
+  --ring: var(--accent);
+  --secondary: var(--surface);
+  --destructive: var(--error);
+  --background: var(--surface-raised);
+  --foreground: var(--ink);
+  --muted-foreground: var(--muted);
+  --primary: var(--accent);
+  --primary-foreground: #fff;
+}

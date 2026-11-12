@@ -1,0 +1,199 @@
+/* React/Radix integration only. Approved visual tokens and layouts live in the migrated demo styles. */
+.memory-column {
+  text-decoration: none;
+}
+.vop-dialog[data-slot] {
+  width: min(680px, calc(100vw - 32px));
+  max-width: 680px;
+  max-height: calc(100dvh - 48px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-radius: 28px;
+  background: var(--surface-raised);
+  color: var(--ink);
+  border: 1px solid var(--edge);
+  padding: 32px;
+}
+.vop-dialog [data-slot='dialog-close'] {
+  color: var(--ink);
+}
+.vocabulary-form {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+.vocabulary-form fieldset {
+  padding: 0;
+  margin: 0;
+  border: 0;
+  min-width: 0;
+}
+.vocabulary-form input {
+  height: 44px;
+  font-size: 16px;
+}
+.vocabulary-form [data-slot='field-error'] {
+  color: var(--error);
+}
+.meaning-editor,
+.example-editor {
+  border-top: 1px solid var(--line);
+  padding-top: 20px;
+}
+.meaning-editor h3 {
+  margin-bottom: 16px;
+}
+.example-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.form-actions,
+.pagination {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.word-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  overflow-wrap: anywhere;
+}
+.word-detail section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.detail-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.word-detail blockquote {
+  margin: 8px 0;
+  border-left: 2px solid var(--accent);
+  padding-left: 16px;
+}
+.word-detail blockquote small {
+  display: block;
+  color: var(--muted);
+}
+.query-loading {
+  display: grid;
+  gap: 24px;
+  padding: 24px;
+}
+.query-loading [data-slot='skeleton'] {
+  background: var(--surface-raised);
+}
+.chart-note {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+.dashboard-empty {
+  margin: 12px 20px;
+  color: var(--muted);
+}
+.app-shell[data-view='dashboard'] .dashboard-activity {
+  min-height: 300px;
+}
+.app-shell[data-view='dashboard'] .line-chart {
+  min-height: 210px;
+}
+.practice-question,
+.session-intro,
+.new-word-intro,
+.progress-summary,
+.flashcard-study {
+  padding: 32px;
+}
+.question-form,
+.answer-feedback,
+.answer-options,
+.flashcard-study {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.answer-options {
+  border: 0;
+  padding: 0;
+}
+.answer-options label {
+  display: flex;
+  gap: 12px;
+  padding: 14px 18px;
+  cursor: pointer;
+}
+.answer-options .selected {
+  outline: 2px solid var(--accent);
+}
+.question-prompt {
+  font-size: 26px;
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+.audio-setting {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.quit-session {
+  margin-top: 20px;
+}
+.new-word-intro article {
+  padding: 12px 0;
+}
+.new-word-intro small {
+  font-size: 14px;
+  color: var(--muted);
+}
+.progress-summary > .table-container {
+  margin-top: 24px;
+  overflow-x: auto;
+}
+.top-actions form {
+  margin: 0;
+}
+.top-search {
+  box-sizing: border-box;
+}
+.table-word strong,
+.meaning-cell {
+  overflow-wrap: anywhere;
+}
+@media (max-width: 600px) {
+  .vop-dialog[data-slot] {
+    padding: 24px;
+    max-height: calc(100dvh - 24px);
+  }
+  .practice-question,
+  .session-intro,
+  .new-word-intro,
+  .progress-summary,
+  .flashcard-study {
+    padding: 20px;
+  }
+  .form-actions {
+    justify-content: center;
+  }
+  .top-actions > .btn {
+    min-width: 0;
+  }
+  .library-tools {
+    flex-wrap: wrap;
+  }
+  .sidebar-bottom {
+    font-size: 12px;
+  }
+}
+/* Demo glyphs use a 256-unit viewBox; Lucide uses 24, so its stroke must not inherit the demo's 17-unit weight. */
+.app-shell .lucide.icon,
+.app-shell .mobile-nav > a .lucide.icon {
+  stroke-width: 1.5;
+}

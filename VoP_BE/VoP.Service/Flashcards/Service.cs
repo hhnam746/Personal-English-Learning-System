@@ -18,6 +18,7 @@ public sealed class Service(AppDbContext db) : IService
         Rules.Require(level == null || level is >= 0 and <= 5, "Level must be 0..5.");
         var query = db.Vocabularies
             .AsNoTracking()
+            .Include(v => v.LearningProgress)
             .Include(v => v.VocabularyMeanings)
             .ThenInclude(m => m.VocabularyExamples)
             .Where(v => v.DeletedAt == null && (v.LearningProgress == null || !v.LearningProgress.IsSuspended));

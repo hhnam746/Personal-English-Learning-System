@@ -8,7 +8,10 @@ public record VocabularyResponse(Guid Id,
     string? AudioUrl,
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt,
-    IReadOnlyList<MeaningResponse> Meanings)
+    IReadOnlyList<MeaningResponse> Meanings,
+    short Level,
+    DateTimeOffset? NextReviewAt,
+    bool IsSuspended)
 {
     public static VocabularyResponse From(Vocabulary v) => new(v.Id,
          v.Term,
@@ -27,7 +30,10 @@ public record VocabularyResponse(Guid Id,
         .OrderBy(e => e.Id)
         .Select(e => new ExampleResponse(e.Id, e.SentenceEn, e.SentenceVi, e.ClozeSentenceEn, e.ClozeAnswer))
         .ToArray()))
-        .ToArray());
+        .ToArray(),
+        v.LearningProgress?.Level ?? 0,
+        v.LearningProgress?.NextReviewAt,
+        v.LearningProgress?.IsSuspended ?? false);
 }
 
 public record MeaningResponse(Guid Id,

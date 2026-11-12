@@ -53,3 +53,9 @@ Open http://127.0.0.1:5080/swagger to browse endpoints and use **Try it out**. T
 - Build output, IDE state, logs, private keys and local database exports are ignored at the repository root.
 - `Properties/launchSettings.json` remains tracked: it contains only the shared Development launch profile and Swagger URL, not credentials. Do not add passwords or tokens to it.
 - Ignore rules do not erase previous commits. If a real credential was pushed, revoke/rotate it; removing a tracked file in a new commit does not remove the old content from history.
+
+### Rider / direct Debug Run
+
+A Debug build defaults to Development when neither host environment variable nor `--environment` is supplied. This also applies to Rider's **.NET Project → VoP.Api** configuration, which may bypass launchSettings.json. Local user secrets are therefore loaded and Swagger is enabled without manual environment setup. Explicit `DOTNET_ENVIRONMENT`, `ASPNETCORE_ENVIRONMENT`, and command-line settings retain normal precedence. Release builds still default to Production with Swagger disabled.
+
+Open http://127.0.0.1:5080/ or http://127.0.0.1:5080/swagger after Run; `/` redirects to Swagger only in Development. Stop an existing API instance before starting another on the same port. The `http` launch profile also opens Swagger when the IDE uses launch profiles.
