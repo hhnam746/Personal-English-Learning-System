@@ -1015,18 +1015,14 @@ kbd {
   height: 340px;
   position: relative;
   transform-style: preserve-3d;
-  transition: transform 0.7s var(--ease) !important;
+  transition:
+    transform 280ms var(--ease),
+    scale 100ms ease-out;
   border-radius: 28px;
   padding: 0;
 }
 .flashcard.flipped {
   transform: rotateY(180deg);
-}
-.flashcard:active {
-  transform: scale(0.99) !important;
-}
-.flashcard.flipped:active {
-  transform: rotateY(180deg) scale(0.99) !important;
 }
 .flash-face {
   position: absolute;

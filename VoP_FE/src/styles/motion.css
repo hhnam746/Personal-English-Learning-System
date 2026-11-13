@@ -1,0 +1,161 @@
+/* Shared state feedback. Reading, typing and focus remain immediate. */
+:root {
+  --motion-fast: 140ms;
+  --motion-state: 200ms;
+}
+@keyframes vop-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes vop-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.page-transition {
+  min-width: 0;
+  animation: vop-fade var(--motion-state) var(--ease) both;
+}
+.dashboard-top > *,
+.dashboard-bottom > * {
+  animation: vop-arrive var(--motion-state) var(--ease) both;
+}
+.dashboard-top > :nth-child(2),
+.dashboard-bottom > :nth-child(2) {
+  animation-delay: 40ms;
+}
+.dashboard-top > :nth-child(3) {
+  animation-delay: 80ms;
+}
+.motion-question,
+.motion-field,
+.result-page,
+.new-word-intro,
+.flash-self:not(.invisible) > *,
+.empty-state,
+.query-loading {
+  animation: vop-arrive var(--motion-state) var(--ease) both;
+}
+.feedback-copy,
+.activity-series,
+.flash-bezel {
+  animation: vop-fade var(--motion-state) var(--ease) both;
+}
+/* Animate progress transforms, never the numeric labels or chart geometry. */
+.meter [data-slot='progress-indicator'] {
+  border-radius: inherit;
+  background: var(--accent);
+}
+.practice-progress [data-slot='progress-indicator'] {
+  background: var(--accent);
+}
+.journey-track > span {
+  transform-origin: left;
+  transition: transform var(--motion-state) var(--ease);
+}
+.answer-option,
+.filter-tabs > button,
+.word-chip,
+.weak-row,
+.nav-item,
+.mobile-nav a,
+.theme-toggle,
+.mobile-theme,
+.memory-bar,
+.journey-row {
+  transition:
+    transform var(--motion-fast) var(--ease),
+    background-color var(--motion-fast) ease,
+    border-color var(--motion-fast) ease,
+    color var(--motion-fast) ease,
+    opacity var(--motion-fast) ease;
+}
+.answer-option.selected {
+  border-color: var(--accent);
+}
+[data-slot='native-select-wrapper'] {
+  max-width: 100%;
+}
+[data-slot='native-select'].glass-control {
+  padding-right: 36px;
+}
+.progress-daily > [data-slot='collapsible-trigger'] {
+  padding-block: 12px;
+}
+/* Hover motion is pointer-only; touch never leaves a lifted control behind. */
+@media (hover: hover) and (pointer: fine) {
+  .word-chip:hover,
+  .weak-row:hover {
+    transform: translateY(-1px);
+  }
+  .memory-column:hover .memory-bar {
+    transform: translateY(-2px);
+  }
+}
+@media (hover: none), (pointer: coarse) {
+  .btn:not(:disabled):hover,
+  .answer-option:hover,
+  .nav-item:hover,
+  .word-chip:hover,
+  .weak-row:hover {
+    transform: none;
+  }
+}
+/* Keep button activation clear on touch without animating keyboard navigation. */
+[data-slot='button']:not(:disabled, .flashcard):active {
+  transform: scale(0.98);
+}
+.flashcard:not(:disabled):active {
+  scale: 0.99;
+}
+@media (prefers-reduced-motion: reduce) {
+  .page-transition,
+  .dashboard-top > *,
+  .dashboard-bottom > *,
+  .motion-question,
+  .motion-field,
+  .result-page,
+  .new-word-intro,
+  .flash-self:not(.invisible) > *,
+  .empty-state,
+  .query-loading,
+  .feedback-copy,
+  .activity-series,
+  .flash-bezel {
+    animation: none;
+  }
+  .memory-column:hover .memory-bar,
+  .weak-row:hover,
+  [data-slot='button']:not(:disabled, .flashcard):active {
+    transform: none;
+  }
+  .flashcard:not(:disabled):active {
+    scale: none;
+  }
+}
+/* Existing global button reset is outside Tailwind's layer. Keep the checkbox visible. */
+.audio-setting [data-slot='checkbox'] {
+  width: 18px;
+  height: 18px;
+  border: 1px solid var(--muted);
+  border-radius: 4px;
+  background: var(--surface-raised);
+}
+.audio-setting [data-slot='checkbox'][data-state='checked'] {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--primary-foreground);
+}
+.audio-setting [data-slot='checkbox']:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}

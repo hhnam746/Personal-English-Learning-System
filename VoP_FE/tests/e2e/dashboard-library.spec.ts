@@ -38,22 +38,61 @@ test('Create, search, detail, edit multiple meanings, reject duplicate and delet
     .first()
     .click()
   const modal = page.getByRole('dialog')
-  await modal.getByRole('button', { name: 'Lưu từ', exact: true }).click()
-  await expect(modal.getByText('Nhập từ tiếng Anh')).toBeVisible()
-  await modal.getByLabel('Từ / cụm từ tiếng Anh').fill(prefix)
+  await modal.getByRole('button', { name: 'Lưu từ mới', exact: true }).click()
+  await expect(
+    modal.getByText('Nhập từ tiếng Anh', { exact: true })
+  ).toBeVisible()
+  await modal.getByLabel('Từ / Cụm từ tiếng Anh').fill(prefix)
   await modal
     .getByLabel('Nghĩa tiếng Việt', { exact: true })
     .fill('bền bỉ trong thử thách')
-  await modal.getByRole('button', { name: 'Thêm ví dụ', exact: true }).click()
+  await modal.getByLabel('Từ loại', { exact: true }).selectOption('adjective')
   await modal
     .getByLabel('Câu ví dụ tiếng Anh', { exact: true })
     .fill('Remain resilient.')
+  const advanced = modal.locator('details')
+  await expect(advanced).not.toHaveAttribute('open', '')
+  await advanced.locator('summary').click()
+  await modal.getByLabel('URL âm thanh (không bắt buộc)').fill('invalid-url')
+  await advanced.locator('summary').click()
+  await modal.getByRole('button', { name: 'Lưu từ mới', exact: true }).click()
+  await expect(
+    modal.getByText('URL âm thanh phải bắt đầu', { exact: false })
+  ).toBeVisible()
+  await modal
+    .getByLabel('URL âm thanh (không bắt buộc)')
+    .fill('https://example.com/resilient.mp3')
+  await modal
+    .getByLabel('Câu điền từ (không bắt buộc)')
+    .fill('Remain ________.')
+  await modal.getByLabel('Đáp án điền từ').fill('resilient')
+  await modal.getByRole('button', { name: 'Thêm ví dụ', exact: true }).click()
+  await modal
+    .getByLabel('Câu ví dụ tiếng Anh', { exact: true })
+    .nth(1)
+    .fill('The team is resilient.')
   await modal.getByRole('button', { name: 'Thêm nghĩa', exact: true }).click()
   await modal
     .getByLabel('Nghĩa tiếng Việt', { exact: true })
     .nth(1)
     .fill('có khả năng phục hồi')
-  await modal.getByRole('button', { name: 'Lưu từ', exact: true }).click()
+  const created = page.waitForResponse(
+    (response) =>
+      response.request().method() === 'POST' &&
+      response.url().endsWith('/api/vocabularies') &&
+      response.status() === 201
+  )
+  await modal.getByRole('button', { name: 'Lưu từ mới', exact: true }).click()
+  const original = await (await created).json()
+  expect(original.meanings[0].partOfSpeech).toBe('adjective')
+  expect(original.meanings[0].examples).toHaveLength(2)
+  expect(
+    original.meanings[0].examples.find(
+      (example: { sentenceEn: string }) =>
+        example.sentenceEn === 'Remain resilient.'
+    )?.clozeAnswer
+  ).toBe('resilient')
+  expect(original.audioUrl).toBe('https://example.com/resilient.mp3')
   await expect(modal).toHaveCount(0)
   await page.getByLabel('Tìm từ hoặc nghĩa tiếng Việt').fill(prefix)
   await expect(page.locator('tbody tr')).toHaveCount(1)
@@ -63,7 +102,16 @@ test('Create, search, detail, edit multiple meanings, reject duplicate and delet
   ).toBeVisible()
   await modal.getByRole('button', { name: 'Sửa từ', exact: true }).click()
   await modal.getByLabel('Phiên âm IPA', { exact: true }).fill('/test/')
-  await modal.getByRole('button', { name: 'Lưu từ', exact: true }).click()
+  const updated = page.waitForResponse(
+    (response) =>
+      response.request().method() === 'PUT' &&
+      response.url().endsWith('/api/vocabularies/' + original.id) &&
+      response.status() === 200
+  )
+  await modal.getByRole('button', { name: 'Lưu thay đổi', exact: true }).click()
+  const edited = await (await updated).json()
+  expect(edited.meanings).toEqual(original.meanings)
+  expect(edited.audioUrl).toBe(original.audioUrl)
   await expect(modal).toHaveCount(0)
   await page.getByRole('button', { name: prefix, exact: false }).first().click()
   await expect(modal.getByText('Remain resilient.')).toBeVisible()
@@ -75,15 +123,17 @@ test('Create, search, detail, edit multiple meanings, reject duplicate and delet
     .getByRole('button', { name: 'Thêm từ mới', exact: true })
     .first()
     .click()
-  await modal.getByLabel('Từ / cụm từ tiếng Anh').fill(prefix)
+  await modal.getByLabel('Từ / Cụm từ tiếng Anh').fill(prefix)
   await modal.getByLabel('Nghĩa tiếng Việt', { exact: true }).fill('trùng')
-  await modal.getByRole('button', { name: 'Lưu từ', exact: true }).click()
-  await expect(modal.getByLabel('Từ / cụm từ tiếng Anh')).toHaveValue(prefix)
+  await modal.getByRole('button', { name: 'Lưu từ mới', exact: true }).click()
+  await expect(modal.getByLabel('Từ / Cụm từ tiếng Anh')).toHaveValue(prefix)
   await expect(
     page.getByText('Term already exists (including archived vocabulary).')
   ).toBeVisible()
-  page.once('dialog', (d) => d.accept())
-  await modal.getByRole('button', { name: 'Hủy', exact: true }).click()
+  await modal
+    .getByRole('button', { name: 'Đóng hộp thoại', exact: true })
+    .click()
+  await page.getByRole('button', { name: 'Bỏ thay đổi', exact: true }).click()
   await page.getByRole('button', { name: prefix, exact: false }).first().click()
   await modal.getByRole('button', { name: 'Xóa từ', exact: true }).click()
   await page.getByRole('button', { name: 'Xác nhận xóa', exact: true }).click()
@@ -93,10 +143,18 @@ test('Create, search, detail, edit multiple meanings, reject duplicate and delet
 test('Failed save keeps draft and Back protects unsaved edits', async ({
   page
 }) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
   await page.goto('/')
-  await page.getByRole('button', { name: 'Thêm từ mới', exact: true }).click()
+  const add = page.getByRole('button', { name: 'Thêm từ mới', exact: true })
+  await expect(page.locator('.vocab-total strong')).toBeVisible()
+  const bounds = await add.boundingBox()
+  if (!bounds) throw new Error('Add button is outside the layout')
+  await page.mouse.click(
+    bounds.x + bounds.width / 2,
+    bounds.y + bounds.height * 0.9
+  )
   const modal = page.getByRole('dialog')
-  await modal.getByLabel('Từ / cụm từ tiếng Anh').fill(prefix + '-failure')
+  await modal.getByLabel('Từ / Cụm từ tiếng Anh').fill(prefix + '-failure')
   await modal
     .getByLabel('Nghĩa tiếng Việt', { exact: true })
     .fill('giữ bản nháp')
@@ -105,15 +163,17 @@ test('Failed save keeps draft and Back protects unsaved edits', async ({
       ? route.fulfill({ status: 500, json: { title: 'Test failure' } })
       : route.continue()
   )
-  await modal.getByRole('button', { name: 'Lưu từ', exact: true }).click()
+  await modal.getByRole('button', { name: 'Lưu từ mới', exact: true }).click()
   await expect(page.getByText('Test failure')).toBeVisible()
-  await expect(modal.getByLabel('Từ / cụm từ tiếng Anh')).toHaveValue(
+  await expect(modal.getByLabel('Từ / Cụm từ tiếng Anh')).toHaveValue(
     prefix + '-failure'
   )
-  page.once('dialog', (d) => d.dismiss())
   await page.goBack()
+  await page
+    .getByRole('button', { name: 'Tiếp tục chỉnh sửa', exact: true })
+    .click()
   await expect(modal).toBeVisible()
-  await expect(modal.getByLabel('Từ / cụm từ tiếng Anh')).toHaveValue(
+  await expect(modal.getByLabel('Từ / Cụm từ tiếng Anh')).toHaveValue(
     prefix + '-failure'
   )
 })
@@ -208,7 +268,10 @@ test('Dashboard start, resume after navigation and complete a real practice sess
   await expect(page).toHaveURL(new RegExp(sessionId))
   await page.getByRole('button', { name: 'Bắt đầu câu hỏi' }).click()
   for (let i = 0; i < 50; i++) {
-    await page.locator('.question-form,.result-page').first().waitFor()
+    await page
+      .locator('.question-form:not(:has(.feedback-copy)),.result-page')
+      .first()
+      .waitFor()
     if (
       await page
         .getByRole('button', { name: 'Hoàn thành phiên', exact: true })
@@ -296,7 +359,7 @@ test('Library combines server search/filter/sort and paginates without dropping 
   await page.goto('/library')
   await page.getByLabel('Tìm từ hoặc nghĩa tiếng Việt').fill(termPrefix)
   await page.getByLabel('Sắp xếp từ').selectOption('alpha')
-  await page.getByRole('button', { name: 'Chưa học', exact: true }).click()
+  await page.getByRole('radio', { name: 'Chưa học', exact: true }).click()
   await expect(page.locator('tbody tr')).toHaveCount(20)
   await expect(page.locator('tbody tr').first()).toContainText(
     termPrefix + '00'
@@ -306,9 +369,9 @@ test('Library combines server search/filter/sort and paginates without dropping 
   await expect(page.locator('tbody tr').first()).toContainText(
     termPrefix + '20'
   )
-  await page.getByRole('button', { name: 'Level 5', exact: true }).click()
+  await page.getByRole('radio', { name: 'Level 5', exact: true }).click()
   await expect(page.getByText('Không có từ phù hợp.')).toBeVisible()
-  await page.getByRole('button', { name: 'Tất cả', exact: true }).click()
+  await page.getByRole('radio', { name: 'Tất cả', exact: true }).click()
   await expect(page.locator('tbody tr')).toHaveCount(20)
   await page
     .getByRole('searchbox', { name: 'Tìm trong kho từ', exact: true })
@@ -359,7 +422,7 @@ test('Mobile form remains usable and delete is available from each library row',
   ).toBeLessThan(3)
   await page
     .getByRole('dialog')
-    .getByRole('button', { name: 'Hủy', exact: true })
+    .getByRole('button', { name: 'Đóng hộp thoại', exact: true })
     .click()
   await expect(page.getByRole('dialog')).toHaveCount(0)
 })

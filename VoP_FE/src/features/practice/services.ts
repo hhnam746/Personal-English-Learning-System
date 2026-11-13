@@ -1,6 +1,36 @@
 import { api } from '@/lib/axios'
-import type { Session, Question, Answer } from './types'
+import type { Page } from '@/types/api.type'
+import type { Session, Question, Answer, Attempt } from './types'
 export default {
+  latest: async () => {
+    let page = 1
+    let scanned = 0
+    let total: number
+    do {
+      const { data } = await api.get<Page<Session>>('/practice-sessions', {
+        params: { page: page++, pageSize: 100 }
+      })
+      const active = data.items.find((s) => s.status === 'in_progress')
+      if (active) return active
+      scanned += data.items.length
+      total = data.totalItems
+    } while (scanned < total)
+    return null
+  },
+  attempts: async (id: string) => {
+    const items: Attempt[] = []
+    let page = 1
+    let total: number
+    do {
+      const { data } = await api.get<Page<Attempt>>(
+        `/practice-sessions/${id}/attempts`,
+        { params: { page: page++, pageSize: 100 } }
+      )
+      items.push(...data.items)
+      total = data.totalItems
+    } while (items.length < total)
+    return items
+  },
   start: async (audioEnabled: boolean) =>
     (await api.post<Session>('/practice-sessions', { audioEnabled })).data,
   get: async (id: string) =>

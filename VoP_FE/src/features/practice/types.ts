@@ -29,3 +29,13 @@ export interface Answer {
   correctAnswer: string
   role: string
 }
+
+export interface Attempt {
+  id: string
+  sessionWordId: string
+  type: Question['type']
+  role: string
+  submittedAnswer: string | null
+  isCorrect: boolean
+  answeredAt: string
+}

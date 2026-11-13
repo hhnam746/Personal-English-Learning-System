@@ -1,3 +1,5 @@
+import { Progress } from '@/components/ui/progress'
+import { NativeSelect } from '@/components/ui/native-select'
 import type { CSSProperties } from 'react'
 import { Link } from 'react-router-dom'
 import {
@@ -17,8 +19,6 @@ import { BrainBlob } from '@/components/organic-brain'
 import { useWordDialog } from '@/features/vocabularies/hooks/use-word-dialog'
 import type { Dashboard } from '../types'
 import { ActivityChart } from './activity-chart'
-const progress = (n: number): CSSProperties =>
-  ({ '--progress': `${Math.max(0, Math.min(100, n))}%` }) as CSSProperties
 export function DashboardContent({
   data,
   days,
@@ -47,19 +47,12 @@ export function DashboardContent({
           <div className="vocab-total">
             <strong>{data.totalWords}</strong>
           </div>
-          <div
+          <Progress
             className="meter"
-            role="progressbar"
             aria-label="Tỷ lệ từ đã bắt đầu học"
-            aria-valuenow={data.learnedWords}
-            aria-valuemin={0}
-            aria-valuemax={Math.max(data.totalWords, 1)}
-            style={progress(
-              data.totalWords ? (data.learnedWords / data.totalWords) * 100 : 0
-            )}
-          >
-            <span />
-          </div>
+            value={data.learnedWords}
+            max={Math.max(data.totalWords, 1)}
+          />
           <div className="vocab-breakdown">
             <span>
               <BookOpen className="icon" /> Đã học{' '}
@@ -155,7 +148,7 @@ export function DashboardContent({
             <h2>
               <ChartNoAxesColumn className="icon" /> Hoạt động học tập
             </h2>
-            <select
+            <NativeSelect
               className="glass-control"
               aria-label="Khoảng thời gian hoạt động"
               value={days}
@@ -163,7 +156,7 @@ export function DashboardContent({
             >
               <option value={7}>7 ngày gần đây</option>
               <option value={14}>14 ngày gần đây</option>
-            </select>
+            </NativeSelect>
           </div>
           <ActivityChart days={data.activity} />
           <p className="chart-note">Lượt đánh giá · Ngày UTC</p>
@@ -181,17 +174,11 @@ export function DashboardContent({
           <p>
             {data.correctAssessments} / {data.assessmentAnswers} lượt đánh giá
           </p>
-          <div
+          <Progress
             className="meter"
             aria-label="Tỷ lệ trả lời đúng"
-            role="progressbar"
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-valuenow={data.accuracyPercent ?? 0}
-            style={progress(data.accuracyPercent ?? 0)}
-          >
-            <span />
-          </div>
+            value={data.accuracyPercent ?? 0}
+          />
           <BrainBlob />
         </AccuracyBlob>
       </div>

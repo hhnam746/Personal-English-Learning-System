@@ -59,7 +59,10 @@
   border: 1.5px solid rgba(255, 255, 255, 0.9);
   background: rgba(112, 97, 108, 0.13);
 }
-.app-shell[data-view='dashboard'] .organic-blob--summary .meter > span {
+.app-shell[data-view='dashboard']
+  .organic-blob--summary
+  .meter
+  > [data-slot='progress-indicator'] {
   background: linear-gradient(
     100deg,
     var(--accent-soft),
@@ -307,7 +310,10 @@
   border: 1.5px solid rgba(255, 255, 255, 0.86);
   background: rgba(125, 110, 111, 0.12);
 }
-.app-shell[data-view='dashboard'] .accuracy-panel .meter > span {
+.app-shell[data-view='dashboard']
+  .accuracy-panel
+  .meter
+  > [data-slot='progress-indicator'] {
   background: linear-gradient(100deg, var(--accent-soft), var(--accent));
   box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.7);
 }
@@ -651,7 +657,8 @@ html[data-theme='dark']
 /* Fill the desktop column down to the same bottom edge as the sidebar. */
 @media (min-width: 1280px) and (min-height: 768px) {
   .app-shell[data-view='dashboard'] .workspace,
-  .app-shell[data-view='dashboard'] #main {
+  .app-shell[data-view='dashboard'] #main,
+  .app-shell[data-view='dashboard'] .page-transition {
     display: flex;
     flex-direction: column;
   }
@@ -661,6 +668,7 @@ html[data-theme='dark']
     flex-shrink: 0;
   }
   .app-shell[data-view='dashboard'] #main,
+  .app-shell[data-view='dashboard'] .page-transition,
   .app-shell[data-view='dashboard'] .dashboard-composition,
   .app-shell[data-view='dashboard'] .dashboard-bottom {
     flex: 1;

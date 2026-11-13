@@ -2,10 +2,11 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { queryKeys } from '@/lib/query-keys'
 import vocabularyService from '../services'
 import type { VocabularyFilters } from '../types'
-export function useVocabularies(filters: VocabularyFilters) {
+export function useVocabularies(filters: VocabularyFilters, enabled = true) {
   return useQuery({
     queryKey: [...queryKeys.vocabularies, 'list', filters],
     queryFn: ({ signal }) => vocabularyService.list(filters, signal),
+    enabled,
     placeholderData: keepPreviousData
   })
 }

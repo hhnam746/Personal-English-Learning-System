@@ -1,109 +1,59 @@
-import { useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
-import { useFlashcards } from '@/features/flashcards/hooks/use-flashcards'
-import { Button } from '@/components/ui/button'
-import { SpeakButton } from '@/components/speak-button'
-import { LoadingState, ErrorState } from '@/components/query-state'
-function Card({
-  word,
-  pending,
-  onRate
-}: {
-  word: import('@/features/vocabularies/types').Vocabulary
-  pending: boolean
-  onRate: (rating: 'remembered' | 'forgotten') => void
-}) {
-  const [flipped, setFlipped] = useState(false)
-  return (
-    <section className="glass-panel flashcard-study">
-      <h2>{word.term}</h2>
-      <p>{word.ipa}</p>
-      <SpeakButton term={word.term} audioUrl={word.audioUrl} />
-      <Button
-        className="btn btn-secondary"
-        onClick={() => setFlipped((v) => !v)}
-      >
-        {flipped ? 'Xem mặt trước' : 'Lật thẻ'}
-      </Button>
-      {flipped && (
-        <>
-          <div>
-            {word.meanings.map((m, i) => (
-              <p key={i}>{m.meaningVi}</p>
-            ))}
-          </div>
-          <div className="form-actions">
-            <Button disabled={pending} onClick={() => onRate('forgotten')}>
-              Chưa nhớ
-            </Button>
-            <Button disabled={pending} onClick={() => onRate('remembered')}>
-              Nhớ
-            </Button>
-          </div>
-        </>
-      )}
-    </section>
-  )
-}
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select'
+import { useIsMutating } from '@tanstack/react-query'
+import { useSearchParams, Link } from 'react-router-dom'
+import { FlashcardStudy } from '@/features/flashcards/components/flashcard-study'
 export default function FlashcardsPage() {
+  const pending = useIsMutating({ mutationKey: ['flashcard-review'] }) > 0
   const [params, setParams] = useSearchParams()
-  const page = Math.max(1, Math.min(100000, Number(params.get('page')) || 1))
-  const { query, rate } = useFlashcards(page)
+  const filter = params.get('level') || ''
+  const level = /^[0-5]$/.test(filter) ? Number(filter) : undefined
   return (
     <>
       <div className="page-heading">
         <div>
           <h1>Flashcard</h1>
-          <p>Ôn tự do, không thay đổi Level hoặc lịch ôn.</p>
+          <p>Lật thẻ để xem nghĩa và tự đánh giá.</p>
         </div>
+        <Select
+          disabled={pending}
+          value={level === undefined ? 'all' : String(level)}
+          onValueChange={(value) =>
+            setParams(value === 'all' ? {} : { level: value })
+          }
+        >
+          <SelectTrigger
+            className="flashcard-level-trigger glass-control"
+            aria-label="Lọc thẻ theo cấp độ"
+          >
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent
+            className="flashcard-level-menu"
+            position="popper"
+            align="end"
+          >
+            <SelectGroup>
+              <SelectItem value="all">Tất cả các từ</SelectItem>
+              {[0, 1, 2, 3, 4, 5].map((l) => (
+                <SelectItem value={String(l)} key={l}>
+                  {l ? `Level ${l}` : 'Chưa học'}
+                </SelectItem>
+              ))}
+            </SelectGroup>
+          </SelectContent>
+        </Select>
       </div>
-      {query.isPending ? (
-        <LoadingState />
-      ) : query.isError ? (
-        <ErrorState error={query.error} retry={() => void query.refetch()} />
-      ) : query.data.items[0] ? (
-        <>
-          <Card
-            key={query.data.items[0].id}
-            word={query.data.items[0]}
-            pending={rate.isPending}
-            onRate={(rating) =>
-              rate.mutate(
-                { id: query.data.items[0].id, rating },
-                {
-                  onSuccess: () => {
-                    if (page < query.data.totalItems)
-                      setParams({ page: String(page + 1) })
-                  }
-                }
-              )
-            }
-          />
-          <div className="form-actions">
-            <Button
-              variant="outline"
-              disabled={page === 1 || rate.isPending}
-              onClick={() => setParams({ page: String(page - 1) })}
-            >
-              Thẻ trước
-            </Button>
-            <span>
-              {page} / {query.data.totalItems}
-            </span>
-            <Button
-              variant="outline"
-              disabled={page >= query.data.totalItems || rate.isPending}
-              onClick={() => setParams({ page: String(page + 1) })}
-            >
-              Thẻ sau
-            </Button>
-          </div>
-        </>
-      ) : (
-        <p className="glass-panel">
-          Không có thẻ ở trang này. Thêm từ hoặc quay lại thẻ trước.
-        </p>
-      )}
+      <FlashcardStudy key={level ?? 'all'} level={level} />
+      <Link className="text-link" to="/library">
+        Mở Kho từ vựng
+      </Link>
     </>
   )
 }

@@ -55,7 +55,9 @@ export default function WorkspaceLayout() {
         )
       ) {
         e.preventDefault()
-        searchInput.current?.focus()
+        const input =
+          document.getElementById('word-search') || searchInput.current
+        input?.focus()
       }
     }
     document.addEventListener('keydown', focus)
@@ -67,12 +69,13 @@ export default function WorkspaceLayout() {
         key={path}
         to={path}
         end={path === '/'}
+        aria-label={mobile ? label : undefined}
         className={({ isActive }) =>
           `${mobile ? '' : 'nav-item'} ${isActive ? 'active' : ''}`
         }
       >
         <Icon className="icon" />
-        <span>{label}</span>
+        <span>{mobile && path === '/library' ? 'Kho từ' : label}</span>
       </NavLink>
     ))
   return (
@@ -139,6 +142,7 @@ export default function WorkspaceLayout() {
               <button
                 className="mobile-theme icon-button"
                 aria-label="Đổi giao diện"
+                aria-pressed={dark}
                 onClick={toggle}
               >
                 {dark ? <Moon className="icon" /> : <Sun className="icon" />}
@@ -150,7 +154,9 @@ export default function WorkspaceLayout() {
             </div>
           </header>
           <main id="main" tabIndex={-1}>
-            <Outlet />
+            <div className="page-transition" key={location.pathname}>
+              <Outlet />
+            </div>
           </main>
         </div>
         <nav className="mobile-nav" aria-label="Điều hướng di động">

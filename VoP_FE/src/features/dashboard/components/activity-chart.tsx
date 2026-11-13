@@ -32,7 +32,12 @@ export function ActivityChart({ days }: { days: DailyActivity[] }) {
       role="img"
       aria-label={`Lượt đánh giá theo ngày UTC: ${days.map((d) => `${label(d.date)}: ${d.assessmentAnswers}`).join('; ')}`}
     >
-      <svg viewBox={`0 0 ${size.width} ${size.height}`} aria-hidden="true">
+      <svg
+        key={days.map((d) => `${d.date}:${d.assessmentAnswers}`).join('|')}
+        className="activity-series"
+        viewBox={`0 0 ${size.width} ${size.height}`}
+        aria-hidden="true"
+      >
         <defs>
           <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
             <stop offset="0" stopColor="var(--accent)" stopOpacity=".14" />

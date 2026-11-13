@@ -1,7 +1,9 @@
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { X } from 'lucide-react'
 import { useBlocker, useBeforeUnload } from 'react-router-dom'
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogTitle,
   DialogDescription
@@ -24,7 +26,14 @@ import { VocabularyForm } from './vocabulary-form'
 
 export function VocabularyDialog() {
   const dialog = useWordDialog()
+  const opener = useRef(
+    document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null
+  )
+  const discardOpener = useRef<HTMLElement | null>(null)
   const dirty = useRef(false)
+  const [discard, setDiscard] = useState(false)
   const setDirty = useCallback((value: boolean) => {
     dirty.current = value
   }, [])
@@ -50,10 +59,6 @@ export function VocabularyDialog() {
       blocker.reset()
       return
     }
-    if (window.confirm('Bỏ thay đổi chưa lưu?')) {
-      dirty.current = false
-      blocker.proceed()
-    } else blocker.reset()
   }, [blocker, save.isPending, remove.isPending])
   const word = query.data
   const confirm = dialog.deleteRequested
@@ -65,34 +70,117 @@ export function VocabularyDialog() {
   const open = editing || !!dialog.detailId
   const close = () => {
     if (!save.isPending && !remove.isPending) {
-      if (
-        dirty.current &&
-        !window.confirm('Đóng biểu mẫu? Nội dung chưa lưu sẽ bị mất.')
-      )
+      if (dirty.current) {
+        discardOpener.current =
+          document.activeElement instanceof HTMLElement
+            ? document.activeElement
+            : null
+        setDiscard(true)
         return
+      }
       dirty.current = false
       dialog.close()
     }
   }
   return (
     <>
+      <AlertDialog
+        open={
+          discard ||
+          (blocker.state === 'blocked' && !save.isPending && !remove.isPending)
+        }
+        onOpenChange={(value) => {
+          if (!value) {
+            setDiscard(false)
+            if (dirty.current && blocker.state === 'blocked') blocker.reset()
+          }
+        }}
+      >
+        <AlertDialogContent
+          onCloseAutoFocus={(event) => {
+            event.preventDefault()
+            if (dirty.current) {
+              const form = document.querySelector(
+                '[data-slot="dialog-content"]'
+              )
+              const target = discardOpener.current
+              if (target?.isConnected && form?.contains(target)) target.focus()
+              else form?.querySelector<HTMLElement>('input,button')?.focus()
+            }
+          }}
+        >
+          <AlertDialogTitle>Bỏ thay đổi chưa lưu?</AlertDialogTitle>
+          <AlertDialogDescription>
+            Nội dung chưa lưu sẽ bị mất. Bạn có thể quay lại để tiếp tục chỉnh
+            sửa.
+          </AlertDialogDescription>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Tiếp tục chỉnh sửa</AlertDialogCancel>
+            <Button
+              className="btn btn-danger"
+              onClick={() => {
+                dirty.current = false
+                setDiscard(false)
+                if (blocker.state === 'blocked') blocker.proceed()
+                else dialog.close()
+              }}
+            >
+              Bỏ thay đổi
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       <Dialog
         open={open}
         onOpenChange={(v) => {
           if (!v) close()
         }}
       >
-        <DialogContent className="vop-dialog">
-          <DialogTitle>
+        <DialogContent
+          className={editing ? 'vop-dialog word-form-dialog' : 'vop-dialog'}
+          staticContent={editing}
+          showCloseButton={!editing}
+          onOpenAutoFocus={(event) => {
+            if (
+              !dialog.create ||
+              window.matchMedia('(pointer: coarse)').matches
+            )
+              return
+            const term = document.getElementById('term')
+            if (term) {
+              event.preventDefault()
+              term.focus({ preventScroll: true })
+            }
+          }}
+          onCloseAutoFocus={(event) => {
+            event.preventDefault()
+            if (opener.current?.isConnected) opener.current.focus()
+            else document.querySelector<HTMLElement>('#main')?.focus()
+          }}
+        >
+          {editing ? (
+            <div className="modal-header">
+              <DialogTitle>
+                {dialog.create ? 'Lưu một từ mới.' : 'Chỉnh sửa từ vựng'}
+              </DialogTitle>
+              <DialogClose
+                className="icon-button"
+                aria-label="Đóng hộp thoại"
+                disabled={save.isPending}
+              >
+                <X className="icon" aria-hidden="true" />
+              </DialogClose>
+            </div>
+          ) : (
+            <DialogTitle>{word?.term || 'Chi tiết từ vựng'}</DialogTitle>
+          )}
+          <DialogDescription
+            className={editing ? 'modal-description' : undefined}
+          >
             {editing
               ? dialog.create
-                ? 'Thêm từ mới'
-                : 'Sửa từ vựng'
-              : word?.term || 'Chi tiết từ vựng'}
-          </DialogTitle>
-          <DialogDescription>
-            {editing
-              ? 'Từ tiếng Anh và nghĩa tiếng Việt thuộc kho từ của bạn.'
+                ? 'Nhập từ tiếng Anh và nghĩa tiếng Việt.'
+                : 'Cập nhật nội dung, giữ lại tiến độ ghi nhớ.'
               : 'Nghĩa, phát âm và ví dụ của từ đã lưu.'}
           </DialogDescription>
           {!dialog.create && query.isPending ? (
@@ -108,10 +196,6 @@ export function VocabularyDialog() {
               word={dialog.editId ? word : undefined}
               pending={save.isPending}
               onDirtyChange={setDirty}
-              onCancel={() => {
-                dirty.current = false
-                dialog.close()
-              }}
               onSave={async (data) => {
                 await save.mutateAsync({ id: dialog.editId || undefined, data })
                 dirty.current = false

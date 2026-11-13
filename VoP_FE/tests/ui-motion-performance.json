@@ -1,0 +1,7 @@
+{
+  "environment": "Local headless Chromium, 1440x1000, unthrottled; smoke sample, not production INP/FPS guarantee",
+  "samples": 43,
+  "medianMs": 16.699999999999932,
+  "p95Ms": 16.700000000000045,
+  "over50ms": 0
+}

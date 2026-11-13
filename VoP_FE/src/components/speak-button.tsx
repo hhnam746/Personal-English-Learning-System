@@ -3,10 +3,12 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 export function SpeakButton({
   term,
-  audioUrl
+  audioUrl,
+  text
 }: {
   term: string
   audioUrl?: string | null
+  text?: string
 }) {
   const speak = () => {
     if (audioUrl) {
@@ -27,11 +29,13 @@ export function SpeakButton({
   return (
     <Button
       variant="ghost"
-      className="icon-button"
+      className={text ? 'text-link' : 'icon-button'}
+      type="button"
       aria-label={`Phát âm ${term}`}
       onClick={speak}
     >
-      <Volume2 aria-hidden="true" />
+      <Volume2 className="icon" aria-hidden="true" />
+      {text}
     </Button>
   )
 }

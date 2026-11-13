@@ -1,20 +1,16 @@
 import { api } from '@/lib/axios'
 import type { Page } from '@/types/api.type'
 import type { Vocabulary } from '@/features/vocabularies/types'
+export type Rating = 'remembered' | 'forgotten'
 export default {
-  list: async (page: number) =>
+  list: async (page: number, level: number | undefined, signal?: AbortSignal) =>
     (
       await api.get<Page<Vocabulary>>('/flashcards', {
-        params: { page, pageSize: 1 }
+        params: { page, level, pageSize: 1 },
+        signal
       })
     ).data,
-  rate: async ({
-    id,
-    rating
-  }: {
-    id: string
-    rating: 'remembered' | 'forgotten'
-  }) => {
+  rate: async ({ id, rating }: { id: string; rating: Rating }) => {
     await api.post(`/flashcards/${id}/reviews`, { rating })
   }
 }

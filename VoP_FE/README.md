@@ -1,6 +1,6 @@
 # VOP Frontend
 
-React + TypeScript + Vite, dành cho kho từ vựng cá nhân. Dashboard và Kho từ vựng dùng API thật; không đọc dữ liệu minh họa hoặc localStorage của bản demo.
+React + TypeScript + Vite, dành cho kho từ vựng cá nhân. Dashboard, Kho từ vựng, Luyện tập, Flashcard và Tiến độ dùng API thật; không đọc dữ liệu minh họa hoặc localStorage của bản demo.
 
 ## Chạy cả Backend và Frontend
 
@@ -49,9 +49,31 @@ Danh sách xem trước từ đến hạn lấy từ `/api/learning-progress?due
 
 **Mọi thao tác ghi trên giao diện đều thay đổi database backend đang cấu hình.** Không có chế độ lưu demo. Lưu từ không tự bắt đầu luyện tập hoặc tăng Level.
 
-### Các đích điều hướng liên quan
+### Flashcard (`/flashcards`)
 
-`/practice`, `/flashcards`, `/progress` có luồng API tối thiểu để điều hướng và các thao tác từ Dashboard hoạt động. Practice lưu liên kết phiên đang mở để tiếp tục, chấm điểm/hoàn thành/bỏ phiên ở server. Flashcard ghi tự đánh giá riêng, không thay đổi SRS. Đây chưa phải tuyên bố đã chuyển toàn bộ giao diện/tính năng của demo sang React. Không bổ sung auth, tài khoản hoặc quy tắc SRS mới.
+- Lọc Level/Chưa học tại server, lật thẻ bằng chuột hoặc Space khi chọn thẻ; chuyển trước/sau bằng nút hoặc phím mũi tên.
+- IPA/phát âm, nhiều nghĩa, từ loại và ví dụ; vùng nội dung dài có thể focus/cuộn bằng bàn phím.
+- Tự đánh giá Đã nhớ/Chưa nhớ gọi API thật; lỗi giữ nguyên thẻ, khóa gửi lặp/chuyển thẻ/lọc khi pending.
+- Kết quả riêng cho lượt ôn hiện tại, đếm mỗi từ theo đánh giá mới nhất; thẻ bỏ qua không tự được tính là nhớ. Có kết thúc sớm và ôn lại. Refresh hoặc đổi Level bắt đầu lượt mới; review đã gửi vẫn lưu ở backend.
+- Không thay đổi Level hoặc lịch ôn. Bộ thẻ loại từ deleted/suspended.
+
+### Tiến độ (`/progress`)
+
+- Tổng quan Level 5/tổng từ, đã học/chưa học, tỷ lệ đúng toàn thời gian; `—` khi chưa có đánh giá.
+- Phân bố Level hiện tại liên kết sang Kho từ; không giả lập timeline tăng cấp.
+- Từ đến hạn lấy lịch ôn backend, mở chi tiết từ và xem tất cả trong Kho từ.
+- Hoạt động 7/14/30 ngày UTC, thống kê đánh giá/đúng/củng cố/Flashcard/phiên hoàn tất; bảng chi tiết từng ngày.
+- Lịch sử phiên phân trang server, phân biệt đang học/hoàn tất/bỏ dở, tiếp tục hoặc xem phiên thật. Không suy số câu đúng từ tổng lượt đã trả lời.
+- Không dựng ranking “hay quên” hoặc số từ học mới theo ngày vì API hiện chưa cung cấp các aggregate đó. Phân bố Level là ảnh chụp hiện tại, không phải lịch sử tăng cấp.
+
+### Luyện tập (`/practice`)
+
+- Bắt đầu phiên hoặc khôi phục phiên đang mở từ server, kể cả khi mất liên kết lưu trên thiết bị.
+- Làm quen từ mới với IPA, phát âm, nhiều nghĩa và ví dụ; phiên chỉ ôn cũ có giải thích riêng.
+- Chọn nghĩa, điền từ, nghe-chọn và nghe-gõ theo câu hỏi backend cung cấp. Bài nghe cần bật tùy chọn âm thanh và từ có URL audio.
+- Giữ câu hỏi/đáp án khi phản hồi; lỗi gửi đáp án không xóa lựa chọn. Tiến độ dựa trên số câu backend, có thể tăng khi thêm lượt củng cố.
+- Kết quả lấy lịch sử trả lời thật; tỷ lệ đúng chỉ tính lượt đánh giá. Không suy Level sau phiên từ số câu đúng; xem Level hiện tại trong Kho từ.
+- Thoát phiên có xác nhận, không thay đổi Level/SRS. Các thông số học tập giữ nguyên backend, không chốt thêm đề xuất của brief.
 
 ## Cấu trúc và thiết kế
 
@@ -105,3 +127,7 @@ touch '<đường dẫn E2E_STOP_FILE>'
 ```
 
 Các lệnh trên là cách tái lập kiểm tra, không phải bằng chứng mọi kiểm tra đã được chạy trên máy khác. Phát âm thực tế phụ thuộc URL, giọng và hỗ trợ của thiết bị.
+
+## UI và animation
+
+Inventory, coverage và kết quả kiểm chứng đợt refactor: [UI motion report](tests/ui-motion-report.md). Animation dùng Animate UI/Motion hiện có, giữ Liquid Glass và tôn trọng `prefers-reduced-motion`.

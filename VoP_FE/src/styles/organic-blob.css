@@ -145,7 +145,7 @@ html[data-theme='dark'] .organic-blob__accent {
   background: rgba(125, 110, 111, 0.1);
   border: 1px solid var(--blob-rim-soft);
 }
-.organic-blob--summary .meter > span {
+.organic-blob--summary .meter > [data-slot='progress-indicator'] {
   background: var(--accent);
 }
 .organic-blob--summary .vocab-breakdown {

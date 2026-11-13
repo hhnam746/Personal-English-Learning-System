@@ -13,6 +13,12 @@ export function usePractice(id: string, questions: boolean) {
     ])
   }
   const error = (e: unknown) => toast.error(apiError(e))
+  const latest = useQuery({
+    queryKey: ['practice', 'latest'],
+    queryFn: service.latest,
+    enabled: !id,
+    staleTime: 0
+  })
   const session = useQuery({
     queryKey: ['practice', id, 'session'],
     queryFn: () => service.get(id),
@@ -27,7 +33,7 @@ export function usePractice(id: string, questions: boolean) {
           (w) => vocabularyService.get(w.vocabularyId)
         )
       ),
-    enabled: !!id && session.isSuccess && !questions
+    enabled: !!id && session.data?.status === 'in_progress' && !questions
   })
   const next = useQuery({
     queryKey: ['practice', id, 'question'],
@@ -36,6 +42,11 @@ export function usePractice(id: string, questions: boolean) {
     retry: false,
     staleTime: Infinity,
     refetchOnMount: 'always'
+  })
+  const attempts = useQuery({
+    queryKey: ['practice', id, 'attempts'],
+    queryFn: () => service.attempts(id),
+    enabled: !!id && session.data?.status === 'completed'
   })
   const start = useMutation({ mutationFn: service.start, onError: error })
   const answer = useMutation({ mutationFn: service.answer, onError: error })
@@ -56,5 +67,21 @@ export function usePractice(id: string, questions: boolean) {
       await refresh()
     }
   }
-  return { session, intro, next, start, answer, complete, abandon, advance }
+  return {
+    feedback:
+      answer.variables?.sessionId === id &&
+      answer.variables?.questionId === next.data?.id
+        ? answer.data
+        : undefined,
+    latest,
+    session,
+    intro,
+    next,
+    attempts,
+    start,
+    answer,
+    complete,
+    abandon,
+    advance
+  }
 }
