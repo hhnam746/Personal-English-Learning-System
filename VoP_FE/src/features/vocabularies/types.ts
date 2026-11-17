@@ -4,9 +4,14 @@ export interface Example {
   sentenceVi: string | null
   clozeSentenceEn: string | null
   clozeAnswer: string | null
+  clozeConfirmed?: boolean
 }
 export interface Meaning {
   id?: string
+  dictionaryEntryId?: number | null
+  dictionaryDefinitionId?: number | null
+  level?: number
+  nextReviewAt?: string | null
   meaningVi: string
   partOfSpeech: string | null
   ipaOverride: string | null
@@ -23,6 +28,7 @@ export interface Vocabulary {
   level: number
   nextReviewAt: string | null
   isSuspended: boolean
+  mixedLevels?: boolean
 }
 export interface VocabularyInput {
   term: string
@@ -32,6 +38,7 @@ export interface VocabularyInput {
 }
 export interface VocabularyFilters {
   search?: string
+  exactTerm?: string
   level?: number
   dueOnly?: boolean
   sort?: string

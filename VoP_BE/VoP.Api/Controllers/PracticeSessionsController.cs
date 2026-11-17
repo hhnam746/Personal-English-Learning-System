@@ -22,6 +22,20 @@ public sealed class PracticeSessionsController(IService service) : ControllerBas
         var q = await service.Next(id, ct);
         return q == null ? NoContent() : Ok(q);
     }
+    [HttpGet("{id:guid}/questions/{questionId:guid}/audio")]
+    public async Task<IActionResult> Audio(Guid id, Guid questionId, CancellationToken ct)
+    {
+        var bytes = await service.QuestionAudio(id, questionId, ct);
+        return bytes == null ? NotFound() : File(bytes, "audio/wav", enableRangeProcessing: true);
+    }
+
+    [HttpPost("{id:guid}/questions/{questionId:guid}/skip-audio")]
+    public async Task<IActionResult> SkipAudio(Guid id, Guid questionId, CancellationToken ct)
+    {
+        await service.SkipAudio(id, questionId, ct);
+        return NoContent();
+    }
+
     [HttpPost("{id:guid}/answers")]
     public async Task<IActionResult> Answer(Guid id, AnswerRequest request, CancellationToken ct) => Ok(await service.Answer(id, request, ct));
     [HttpPost("{id:guid}/complete")]

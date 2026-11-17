@@ -103,6 +103,7 @@ for (const reducedMotion of ['no-preference', 'reduce'] as const) {
       .first()
     await add.click()
     const dialog = page.getByRole('dialog')
+    await dialog.getByRole('button', { name: 'Nhập thủ công' }).click()
     await dialog.getByLabel('Từ / Cụm từ tiếng Anh').fill('unsaved-motion')
     await page.keyboard.press('Escape')
     await expect(page.getByRole('alertdialog')).toBeVisible()
@@ -130,15 +131,15 @@ test('Animated meters keep values and shape, daily disclosure works with reduced
   const data = await (await request.get('/api/dashboard?days=7')).json()
   await page.goto('/')
   const learned = page.getByRole('progressbar', {
-    name: 'Tỷ lệ từ đã bắt đầu học'
+    name: 'Tỷ lệ nghĩa đã bắt đầu học'
   })
   await expect(learned).toHaveAttribute(
     'aria-valuenow',
-    String(data.learnedWords)
+    String(data.learnedMeanings)
   )
   await expect(learned).toHaveAttribute(
     'aria-valuemax',
-    String(Math.max(data.totalWords, 1))
+    String(Math.max(data.totalMeanings, 1))
   )
   const indicator = learned.locator('[data-slot=progress-indicator]')
   expect(
@@ -226,7 +227,7 @@ test('Touch flip, audio setting and mobile navigation remain usable', async ({
     .getByRole('link', { name: 'Luyện tập' })
     .tap()
   const audio = page.getByRole('checkbox', {
-    name: 'Bật câu hỏi nghe khi từ có URL âm thanh'
+    name: 'Bật câu hỏi nghe khi có âm thanh offline'
   })
   await audio.tap()
   await expect(audio).toBeChecked()

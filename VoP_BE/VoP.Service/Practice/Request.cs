@@ -9,6 +9,8 @@ public sealed class SessionRequest
     public int Limit { get; set; } = 12;
     [MaxLength(12)]
     public List<Guid>? VocabularyIds { get; set; }
+    [MaxLength(12)]
+    public List<Guid>? MeaningIds { get; set; }
     public bool ExtraPractice { get; set; }
     public bool AudioEnabled { get; set; } = true;
 }

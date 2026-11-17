@@ -3,7 +3,14 @@ import {
   CollapsibleTrigger,
   CollapsibleContent
 } from '@/components/ui/collapsible'
-import { NativeSelect } from '@/components/ui/native-select'
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowRight, Sprout, Leaf, Info, Zap } from 'lucide-react'
@@ -37,7 +44,7 @@ function DueWords() {
         <Leaf className="icon" />
       </div>
       <p className="muted">
-        Ưu tiên lịch ôn sớm nhất, không bao gồm từ đang tạm dừng.
+        Ưu tiên lịch ôn sớm nhất.
       </p>
       {query.isPending ? (
         <LoadingState />
@@ -48,11 +55,11 @@ function DueWords() {
           {query.data.items.map((w) => (
             <button
               className="weak-row"
-              key={w.vocabularyId}
+              key={w.meaningId}
               onClick={() => dialog.openDetail(w.vocabularyId)}
             >
               <div>
-                <strong>{w.term}</strong>
+                <strong>{w.term} · {w.meaningVi}</strong>
                 <span>
                   Hạn ôn: {w.nextReviewAt ? date(w.nextReviewAt) : '—'} UTC
                 </span>
@@ -65,12 +72,12 @@ function DueWords() {
           ))}
           {!query.data.totalItems && (
             <p>
-              Hiện không có từ đến hạn. Bạn có thể học từ mới hoặc ôn tự do bằng
+              Hiện không có nghĩa đến hạn. Bạn có thể học từ mới hoặc ôn tự do bằng
               Flashcard.
             </p>
           )}
           <Link className="text-link" to="/library?filter=due">
-            Xem tất cả {query.data.totalItems} từ đến hạn{' '}
+            Xem tất cả {query.data.totalItems} nghĩa đến hạn{' '}
             <ArrowRight className="icon" />
           </Link>
         </>
@@ -116,7 +123,7 @@ function SessionHistory() {
                     <Zap className="icon" aria-hidden="true" />
                     {date(session.startedAt)}
                   </span>
-                  <span>{session.words.length} từ</span>
+                  <span>{session.words.length} {session.words.some(w => w.isLegacy) ? 'từ' : 'nghĩa'}</span>
                   <span>{session.answeredCount} lượt trả lời</span>
                   <span>{labels[session.status]}</span>
                 </Link>
@@ -172,7 +179,7 @@ export function ProgressContent({
     }),
     { assessment: 0, correct: 0, reinforcement: 0, cards: 0, sessions: 0 }
   )
-  const level5 = data.levels.find((l) => l.level === 5)?.count || 0
+  const level5 = data.masteredMeanings
   return (
     <>
       {!data.totalWords && (
@@ -188,19 +195,19 @@ export function ProgressContent({
       )}
       <section className="progress-overview glass-panel glass-panel--peach">
         <div className="mastery-number">
-          <span className="eyebrow">TỪ ĐANG Ở LEVEL 5</span>
+          <span className="eyebrow">NGHĨA ĐANG Ở LEVEL 5</span>
           <strong>
             {level5}
-            <span> / {data.totalWords}</span>
+            <span> / {data.totalMeanings}</span>
           </strong>
           <p>Ghi nhớ ở cấp cao nhất, vẫn cần ôn duy trì.</p>
         </div>
         <div className="progress-stats">
           <div>
-            <strong>{data.learnedWords}</strong>
-            <span>từ đã bắt đầu học</span>
+            <strong>{data.learnedMeanings}</strong>
+            <span>nghĩa đã bắt đầu học</span>
             <Link className="text-link" to="/library?filter=0">
-              {data.newWords} từ chưa học
+              {data.newMeanings} nghĩa chưa học
             </Link>
           </div>
           <div>
@@ -237,7 +244,7 @@ export function ProgressContent({
                   <div className="journey-track">
                     <span
                       style={{
-                        transform: `scaleX(${data.totalWords ? l.count / data.totalWords : 0})`
+                        transform: `scaleX(${data.totalMeanings ? l.count / data.totalMeanings : 0})`
                       }}
                     />
                   </div>
@@ -260,18 +267,26 @@ export function ProgressContent({
       <section className="history-section glass-panel progress-activity">
         <div className="panel-top">
           <h2>Hoạt động học tập</h2>
-          <NativeSelect
-            className="glass-control"
-            aria-label="Khoảng thời gian hoạt động"
-            value={days}
-            onChange={(e) => onDays(Number(e.target.value))}
+          <Select
+            value={String(days)}
+            onValueChange={(value) => onDays(Number(value))}
           >
-            {[7, 14, 30].map((n) => (
-              <option key={n} value={n}>
-                {n} ngày gần đây
-              </option>
-            ))}
-          </NativeSelect>
+            <SelectTrigger
+              className="glass-control"
+              aria-label="Khoảng thời gian hoạt động"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent position="popper" align="end">
+              <SelectGroup>
+                {[7, 14, 30].map((n) => (
+                  <SelectItem key={n} value={String(n)}>
+                    {n} ngày gần đây
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
         </div>
         <p className="chart-note">
           Ngày UTC. Chỉ lượt đánh giá được tính vào tỷ lệ đúng; không gồm củng

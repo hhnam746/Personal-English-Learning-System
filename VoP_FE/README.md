@@ -1,4 +1,4 @@
-# VOP Frontend
+# Recall Frontend
 
 React + TypeScript + Vite, dành cho kho từ vựng cá nhân. Dashboard, Kho từ vựng, Luyện tập, Flashcard và Tiến độ dùng API thật; không đọc dữ liệu minh họa hoặc localStorage của bản demo.
 

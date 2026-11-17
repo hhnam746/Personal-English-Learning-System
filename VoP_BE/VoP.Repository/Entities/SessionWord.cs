@@ -8,6 +8,9 @@ public class SessionWord
     public Guid SessionId { get; set; }
     public Guid VocabularyId { get; set; }
     public SessionWordSource Source { get; set; }
+    public Guid? MeaningId { get; set; }
+    public VocabularyMeaning? Meaning { get; set; }
+    public bool IsLegacy { get; set; }
     public string? QuestionPlan { get; set; }
     public int Position { get; set; }
     public short LevelAtStart { get; set; }

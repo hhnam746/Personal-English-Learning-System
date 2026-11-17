@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { X } from 'lucide-react'
+import { ArrowLeft, X } from 'lucide-react'
 import { useBlocker, useBeforeUnload } from 'react-router-dom'
 import {
   Dialog,
@@ -22,6 +22,9 @@ import { SpeakButton } from '@/components/speak-button'
 import { useWordDialog } from '../hooks/use-word-dialog'
 import { useVocabulary } from '../hooks/use-vocabularies'
 import { useVocabularyMutations } from '../hooks/use-vocabulary-mutations'
+import { WordHistory } from './word-history'
+import { DictionaryLookup } from './dictionary-lookup'
+import type { VocabularyInput } from '../types'
 import { VocabularyForm } from './vocabulary-form'
 
 export function VocabularyDialog() {
@@ -33,7 +36,9 @@ export function VocabularyDialog() {
   )
   const discardOpener = useRef<HTMLElement | null>(null)
   const dirty = useRef(false)
-  const [discard, setDiscard] = useState(false)
+  const [draft, setDraft] = useState<VocabularyInput | null>(null)
+  const [lookupTerm, setLookupTerm] = useState('')
+  const [discard, setDiscard] = useState<'close' | 'lookup' | null>(null)
   const setDirty = useCallback((value: boolean) => {
     dirty.current = value
   }, [])
@@ -51,7 +56,9 @@ export function VocabularyDialog() {
       }
     }, [])
   )
-  const query = useVocabulary(dialog.editId || dialog.detailId)
+  const query = useVocabulary(
+    dialog.deleteId || dialog.editId || dialog.detailId
+  )
   const { save, remove } = useVocabularyMutations()
   useEffect(() => {
     if (blocker.state !== 'blocked') return
@@ -61,42 +68,44 @@ export function VocabularyDialog() {
     }
   }, [blocker, save.isPending, remove.isPending])
   const word = query.data
-  const confirm = dialog.deleteRequested
-  const setConfirm = (value: boolean) => {
-    if (value && word) dialog.openDelete(word.id)
-    else dialog.cancelDelete()
-  }
   const editing = dialog.create || !!dialog.editId
   const open = editing || !!dialog.detailId
-  const close = () => {
+  const leaveForm = (destination: 'close' | 'lookup') => {
+    dirty.current = false
+    setDraft(null)
+    setLookupTerm(destination === 'lookup' ? (draft?.term ?? '') : '')
+    if (destination === 'close') dialog.close()
+    else requestAnimationFrame(() => document.getElementById('term')?.focus())
+  }
+  const requestLeave = (destination: 'close' | 'lookup') => {
     if (!save.isPending && !remove.isPending) {
       if (dirty.current) {
         discardOpener.current =
           document.activeElement instanceof HTMLElement
             ? document.activeElement
             : null
-        setDiscard(true)
+        setDiscard(destination)
         return
       }
-      dirty.current = false
-      dialog.close()
+      leaveForm(destination)
     }
   }
   return (
     <>
       <AlertDialog
         open={
-          discard ||
+          discard !== null ||
           (blocker.state === 'blocked' && !save.isPending && !remove.isPending)
         }
         onOpenChange={(value) => {
           if (!value) {
-            setDiscard(false)
+            setDiscard(null)
             if (dirty.current && blocker.state === 'blocked') blocker.reset()
           }
         }}
       >
         <AlertDialogContent
+          className="vop-dialog"
           onCloseAutoFocus={(event) => {
             event.preventDefault()
             if (dirty.current) {
@@ -115,14 +124,19 @@ export function VocabularyDialog() {
             sửa.
           </AlertDialogDescription>
           <AlertDialogFooter>
-            <AlertDialogCancel>Tiếp tục chỉnh sửa</AlertDialogCancel>
+            <AlertDialogCancel className="btn btn-secondary">
+              Tiếp tục chỉnh sửa
+            </AlertDialogCancel>
             <Button
               className="btn btn-danger"
               onClick={() => {
                 dirty.current = false
-                setDiscard(false)
-                if (blocker.state === 'blocked') blocker.proceed()
-                else dialog.close()
+                setDiscard(null)
+                if (blocker.state === 'blocked') {
+                  setDraft(null)
+                  setLookupTerm('')
+                  blocker.proceed()
+                } else leaveForm(discard ?? 'close')
               }}
             >
               Bỏ thay đổi
@@ -133,7 +147,7 @@ export function VocabularyDialog() {
       <Dialog
         open={open}
         onOpenChange={(v) => {
-          if (!v) close()
+          if (!v) requestLeave('close')
         }}
       >
         <DialogContent
@@ -158,126 +172,165 @@ export function VocabularyDialog() {
             else document.querySelector<HTMLElement>('#main')?.focus()
           }}
         >
-          {editing ? (
-            <div className="modal-header">
-              <DialogTitle>
-                {dialog.create ? 'Lưu một từ mới.' : 'Chỉnh sửa từ vựng'}
-              </DialogTitle>
-              <DialogClose
-                className="icon-button"
-                aria-label="Đóng hộp thoại"
-                disabled={save.isPending}
-              >
-                <X className="icon" aria-hidden="true" />
-              </DialogClose>
-            </div>
-          ) : (
-            <DialogTitle>{word?.term || 'Chi tiết từ vựng'}</DialogTitle>
-          )}
-          <DialogDescription
-            className={editing ? 'modal-description' : undefined}
-          >
-            {editing
-              ? dialog.create
-                ? 'Nhập từ tiếng Anh và nghĩa tiếng Việt.'
-                : 'Cập nhật nội dung, giữ lại tiến độ ghi nhớ.'
-              : 'Nghĩa, phát âm và ví dụ của từ đã lưu.'}
-          </DialogDescription>
-          {!dialog.create && query.isPending ? (
-            <LoadingState />
-          ) : !dialog.create && query.isError ? (
-            <ErrorState
-              error={query.error}
-              retry={() => void query.refetch()}
-            />
-          ) : editing ? (
-            <VocabularyForm
-              key={dialog.editId || 'new'}
-              word={dialog.editId ? word : undefined}
-              pending={save.isPending}
-              onDirtyChange={setDirty}
-              onSave={async (data) => {
-                await save.mutateAsync({ id: dialog.editId || undefined, data })
-                dirty.current = false
-                dialog.close()
-              }}
-            />
-          ) : (
-            word && (
-              <div className="word-detail">
-                <div className="detail-title">
-                  <span>{word.ipa || 'Chưa có IPA'}</span>
-                  <SpeakButton term={word.term} audioUrl={word.audioUrl} />
-                </div>
-                <span className={`level-tag level-${word.level}`}>
-                  {word.level ? `Level ${word.level}` : 'Chưa học'}
-                </span>
-                {word.meanings.map((m, i) => (
-                  <section key={m.id || i}>
-                    <h3>{m.meaningVi}</h3>
-                    <p className="muted">
-                      {m.partOfSpeech} {m.ipaOverride}
-                    </p>
-                    {m.examples.map((e, n) => (
-                      <blockquote key={e.id || n}>
-                        {e.sentenceEn}
-                        {e.sentenceVi && <small>{e.sentenceVi}</small>}
-                      </blockquote>
-                    ))}
-                  </section>
-                ))}
-                <p className="muted">
-                  {word.isSuspended
-                    ? 'Đang tạm dừng ôn'
-                    : word.nextReviewAt
-                      ? `Lịch ôn: ${new Date(word.nextReviewAt).toLocaleString('vi-VN')}`
-                      : 'Chưa bắt đầu học'}
-                </p>
-                <div className="form-actions">
-                  <Button
-                    className="btn btn-secondary"
-                    onClick={() => setConfirm(true)}
-                  >
-                    Xóa từ
-                  </Button>
-                  <Button
-                    className="btn btn-primary"
-                    onClick={() => dialog.openEdit(word.id)}
-                  >
-                    Sửa từ
-                  </Button>
-                </div>
+          <div className={editing ? 'word-form-scroll' : 'contents'}>
+            {editing ? (
+              <div className="modal-header">
+                <DialogTitle>
+                  {dialog.create ? 'Lưu một từ mới.' : 'Chỉnh sửa từ vựng'}
+                </DialogTitle>
+                <DialogClose
+                  className="icon-button"
+                  aria-label="Đóng hộp thoại"
+                  disabled={save.isPending}
+                >
+                  <X className="icon" aria-hidden="true" />
+                </DialogClose>
               </div>
-            )
-          )}
+            ) : (
+              <DialogTitle>{word?.term || 'Chi tiết từ vựng'}</DialogTitle>
+            )}
+            <DialogDescription
+              className={editing ? 'modal-description' : undefined}
+            >
+              {editing
+                ? dialog.create
+                  ? draft
+                    ? 'Kiểm tra nghĩa trước khi lưu.'
+                    : 'Tra từ tiếng Anh hoặc nhập thủ công.'
+                  : 'Cập nhật nội dung, giữ lại tiến độ ghi nhớ.'
+                : 'Nghĩa, phát âm và ví dụ của từ đã lưu.'}
+            </DialogDescription>
+            {dialog.create && draft && !draft.meanings.length && (
+              <Button
+                type="button"
+                variant="ghost"
+                className="text-link mb-4"
+                disabled={save.isPending}
+                onClick={() => requestLeave('lookup')}
+              >
+                <ArrowLeft className="icon" aria-hidden="true" />
+                Quay lại tra từ
+              </Button>
+            )}
+            {!dialog.create && query.isPending ? (
+              <LoadingState />
+            ) : !dialog.create && query.isError ? (
+              <ErrorState
+                error={query.error}
+                retry={() => void query.refetch()}
+              />
+            ) : dialog.create && !draft ? (
+              <DictionaryLookup
+                initialTerm={lookupTerm}
+                onChoose={setDraft}
+                onDirtyChange={setDirty}
+                onManual={(term) =>
+                  setDraft({ term, ipa: null, audioUrl: null, meanings: [] })
+                }
+              />
+            ) : editing ? (
+              <VocabularyForm
+                key={dialog.editId || 'new'}
+                initial={dialog.create ? (draft ?? undefined) : undefined}
+                word={dialog.editId ? word : undefined}
+                pending={save.isPending}
+                onDirtyChange={setDirty}
+                onSave={async (data) => {
+                  await save.mutateAsync({
+                    id: dialog.editId || undefined,
+                    data,
+                    append: dialog.create && !!draft?.meanings.length
+                  })
+                  leaveForm('close')
+                }}
+              />
+            ) : (
+              word && (
+                <div className="word-detail">
+                  <div className="detail-title">
+                    <span>{word.ipa || 'Chưa có IPA'}</span>
+                    <SpeakButton term={word.term} audioUrl={word.audioUrl} />
+                  </div>
+                  {word.meanings.map((m, i) => (
+                    <section key={m.id || i}>
+                      <h3>{m.meaningVi}</h3>
+                      <span className={`level-tag level-${m.level ?? 0}`}>
+                        {m.level ? `Level ${m.level}` : 'Chưa học'}
+                      </span>
+                      <p className="muted">
+                        {m.partOfSpeech} {m.ipaOverride}
+                      </p>
+                      {m.examples.map((e, n) => (
+                        <blockquote key={e.id || n}>
+                          {e.sentenceEn}
+                          {e.sentenceVi && <small>{e.sentenceVi}</small>}
+                        </blockquote>
+                      ))}
+                    </section>
+                  ))}
+                  <p className="muted">
+                    {word.isSuspended
+                      ? 'Đang tạm dừng ôn'
+                      : word.nextReviewAt
+                        ? `Lịch ôn: ${new Date(word.nextReviewAt).toLocaleString('vi-VN')}`
+                        : 'Chưa bắt đầu học'}
+                  </p>
+                  <WordHistory key={word.id} id={word.id} />
+                  <div className="form-actions">
+                    <Button
+                      className="btn btn-danger"
+                      onClick={() => dialog.openDelete(word.id)}
+                    >
+                      Xóa từ
+                    </Button>
+                    <Button
+                      className="btn btn-primary"
+                      onClick={() => dialog.openEdit(word.id)}
+                    >
+                      Sửa từ
+                    </Button>
+                  </div>
+                </div>
+              )
+            )}
+          </div>
         </DialogContent>
       </Dialog>
       <AlertDialog
-        open={confirm && !!word}
+        open={!!dialog.deleteId}
         onOpenChange={(v) => {
-          if (!remove.isPending) setConfirm(v)
+          if (!v && !remove.isPending) dialog.cancelDelete()
         }}
       >
-        <AlertDialogContent className="vop-dialog">
-          <AlertDialogTitle>Xóa “{word?.term}”?</AlertDialogTitle>
+        <AlertDialogContent
+          className="vop-dialog glass-panel--dialog"
+          onCloseAutoFocus={(event) => {
+            if (dialog.detailId) return
+            event.preventDefault()
+            if (opener.current?.isConnected) opener.current.focus()
+            else document.querySelector<HTMLElement>('#main')?.focus()
+          }}
+        >
+          <AlertDialogTitle>
+            {word ? `Xóa “${word.term}”?` : 'Xóa từ vựng?'}
+          </AlertDialogTitle>
           <AlertDialogDescription>
-            Từ bị loại khỏi kho. Lịch sử học đã ghi nhận vẫn được giữ lại.
+            {query.isError
+              ? 'Không tải được từ vựng.'
+              : 'Từ bị loại khỏi kho. Lịch sử học đã ghi nhận vẫn được giữ lại.'}
           </AlertDialogDescription>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={remove.isPending}>
+            <AlertDialogCancel
+              className="btn btn-secondary"
+              disabled={remove.isPending}
+            >
               Giữ lại
             </AlertDialogCancel>
             <Button
-              variant="destructive"
-              disabled={remove.isPending}
+              className="btn btn-danger"
+              disabled={remove.isPending || !word}
               onClick={() => {
-                if (word)
-                  remove.mutate(word.id, {
-                    onSuccess: () => {
-                      setConfirm(false)
-                      dialog.close()
-                    }
-                  })
+                if (word) remove.mutate(word.id, { onSuccess: dialog.close })
               }}
             >
               {remove.isPending ? 'Đang xóa…' : 'Xác nhận xóa'}

@@ -31,6 +31,9 @@ export default {
     } while (items.length < total)
     return items
   },
+  skipAudio: async ({ sessionId, questionId }: { sessionId: string; questionId: string }) => {
+    await api.post(`/practice-sessions/${sessionId}/questions/${questionId}/skip-audio`)
+  },
   start: async (audioEnabled: boolean) =>
     (await api.post<Session>('/practice-sessions', { audioEnabled })).data,
   get: async (id: string) =>

@@ -157,7 +157,7 @@ html[data-theme='dark'] .organic-blob__accent {
   font-size: 12px;
 }
 
-/* Brain variation: no extra text, glow or animated lighting. */
+/* Brain illustration sits on its own layer inside the glass. */
 .organic-blob--brain {
   aspect-ratio: 1 / 0.98;
   width: var(--brain-blob-width, 176px);
@@ -353,4 +353,67 @@ html[data-theme='dark'] .organic-blob--brain > .organic-blob__glass {
       transparent 70%
     ),
     var(--blob-fill);
+}
+
+@media (prefers-reduced-motion: no-preference) and (prefers-reduced-transparency: no-preference) and (prefers-contrast: no-preference) {
+  .organic-blob--summary {
+    --blob-float-duration: 9s;
+    --blob-float-phase: -2s;
+    --blob-float-x: 2px;
+    --blob-float-y: -4px;
+  }
+  .organic-blob--accuracy {
+    --blob-float-duration: 10s;
+    --blob-float-phase: -5s;
+    --blob-float-x: -2px;
+    --blob-float-y: 3px;
+  }
+  .organic-blob--brain {
+    --blob-float-duration: 8s;
+    --blob-float-phase: -1s;
+    --blob-float-x: 2px;
+    --blob-float-y: -3px;
+  }
+  :is(.organic-blob--summary, .organic-blob--accuracy, .organic-blob--brain)
+    > :is(
+      .organic-blob__glass,
+      .organic-blob__edge,
+      .organic-blob__shadow,
+      .organic-blob__accent
+    ) {
+    animation: organic-blob-float var(--blob-float-duration) ease-in-out
+      var(--blob-float-phase) infinite;
+  }
+  :is(.organic-blob--summary, .organic-blob--accuracy, .organic-blob--brain)
+    > .organic-blob__glass::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(
+      ellipse at 30% 55%,
+      var(--blob-wash),
+      transparent 55%
+    );
+    animation: organic-blob-light var(--blob-float-duration) ease-in-out
+      var(--blob-float-phase) infinite;
+  }
+}
+
+@keyframes organic-blob-float {
+  50% {
+    transform: translate(var(--blob-float-x), var(--blob-float-y))
+      scale(1.025, 1.040);
+  }
+}
+
+@keyframes organic-blob-light {
+  0%,
+  100% {
+    opacity: 0.3;
+    transform: translate(-3%, 0);
+  }
+  50% {
+    opacity: 0.55;
+    transform: translate(4%, -3%);
+  }
 }

@@ -1,6 +1,7 @@
 /* Shared state feedback. Reading, typing and focus remain immediate. */
 :root {
   --motion-fast: 140ms;
+  --hover-delay: 80ms;
   --motion-state: 200ms;
 }
 @keyframes vop-arrive {
@@ -91,6 +92,32 @@
 .progress-daily > [data-slot='collapsible-trigger'] {
   padding-block: 12px;
 }
+[data-slot='select-item'] {
+  transition: color 280ms var(--ease);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .glass-inset[data-selected] {
+    transition:
+      background-color 460ms ease-in-out,
+      border-color 460ms ease-in-out;
+  }
+}
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  :is(
+      button,
+      .btn,
+      .icon-button,
+      .nav-item,
+      .word-chip,
+      .weak-row,
+      .journey-row,
+      .answer-option,
+      summary,
+      [data-slot='select-item']
+    ):hover:not(:active, :disabled, [aria-disabled='true'], .flashcard) {
+    transition-delay: var(--hover-delay);
+  }
+}
 /* Hover motion is pointer-only; touch never leaves a lifted control behind. */
 @media (hover: hover) and (pointer: fine) {
   .word-chip:hover,
@@ -158,4 +185,22 @@
 .audio-setting [data-slot='checkbox']:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html[data-theme-reveal]::view-transition-old(root) {
+    animation: none;
+  }
+  html[data-theme-reveal]::view-transition-new(root) {
+    mix-blend-mode: normal;
+    animation: recall-theme-reveal 900ms ease-in-out both;
+  }
+  @keyframes recall-theme-reveal {
+    from {
+      clip-path: circle(0 at var(--theme-reveal-origin));
+    }
+    to {
+      clip-path: circle(var(--theme-reveal-radius) at var(--theme-reveal-origin));
+    }
+  }
 }

@@ -16,7 +16,9 @@ export function useVocabularyMutations() {
     mutationFn: vocabularyService.save,
     onSuccess: async () => {
       await refresh()
-      toast.success('Đã lưu từ vựng')
+      toast.success('Đã lưu từ vựng', {
+        classNames: { title: 'toast-success-title' }
+      })
     },
     onError: (e) => toast.error(apiError(e))
   })

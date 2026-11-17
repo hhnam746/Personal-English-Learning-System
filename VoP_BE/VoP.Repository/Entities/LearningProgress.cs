@@ -5,6 +5,7 @@ namespace VoP.Repository.Entities;
 public class LearningProgress
 {
     public Guid VocabularyId { get; set; }
+    public Guid? MappedMeaningId { get; set; }
     public short Level { get; set; }
     public DateTimeOffset? FirstLearnedAt { get; set; }
     public DateTimeOffset? LastReviewedAt { get; set; }

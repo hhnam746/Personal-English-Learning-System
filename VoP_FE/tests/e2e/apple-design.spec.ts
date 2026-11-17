@@ -30,11 +30,14 @@ test('Word forms use frosted glass and nested confirmations stay opaque in both 
         animations: 'disabled'
       })
     }
+    await form.getByRole('button', { name: 'Nhập thủ công' }).click()
     await form
       .getByLabel('Từ / Cụm từ tiếng Anh')
       .fill('Draft only — never saved')
     await page.keyboard.press('Escape')
     const confirm = page.getByRole('alertdialog')
+    await expect(confirm).toHaveCSS('border-radius', '28px')
+    await expect(confirm).toHaveCSS('background-image', /linear-gradient/)
     await expect(confirm).toHaveCSS(
       'background-color',
       dark ? 'rgb(45, 44, 47)' : 'rgb(250, 248, 246)'

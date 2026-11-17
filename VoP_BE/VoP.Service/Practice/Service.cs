@@ -7,14 +7,20 @@ using VoP.Service.Common;
 
 namespace VoP.Service.Practice;
 
-public sealed class Service(AppDbContext db) : IService
+public sealed class Service(AppDbContext db, OfflineAudio audio) : IService
 {
+    internal static bool Semantic(ExerciseType type) =>
+        type is ExerciseType.MeaningMcq or ExerciseType.FillBlank;
+
     private IQueryable<PracticeSession> Sessions => db.PracticeSessions
         .Include(s => s.SessionWords)
         .ThenInclude(w => w.ExerciseAttempts)
         .Include(s => s.SessionWords)
         .ThenInclude(w => w.Vocabulary)
-        .ThenInclude(v => v.LearningProgress);
+        .ThenInclude(v => v.LearningProgress)
+        .Include(s => s.SessionWords)
+        .ThenInclude(w => w.Meaning)
+        .ThenInclude(m => m!.Progress);
 
     private async Task<PracticeSession> Find(Guid id, CancellationToken ct) =>
         await Sessions.SingleOrDefaultAsync(s => s.Id == id, ct)
@@ -51,7 +57,11 @@ public sealed class Service(AppDbContext db) : IService
             w.Source,
             w.LevelAtStart,
             w.QuestionPlan == null ? w.Vocabulary.Term : Plan(w).Term,
-            w.QuestionPlan == null ? w.Vocabulary.Ipa : Plan(w).Ipa))
+            w.QuestionPlan == null ? w.Vocabulary.Ipa : Plan(w).Ipa,
+            w.MeaningId,
+            s.Status == PracticeSessionStatus.InProgress ? null :
+                (w.QuestionPlan == null ? null : Plan(w).MeaningVi) ?? w.Meaning?.MeaningVi,
+            w.IsLegacy))
             .ToArray();
         var count = s.SessionWords.Sum(w => w.ExerciseAttempts.Count);
         var planned = s.SessionWords.Where(w => w.QuestionPlan != null).Sum(w => Plan(w).Questions.Count);
@@ -77,69 +87,59 @@ public sealed class Service(AppDbContext db) : IService
     public async Task<SessionResponse> Create(SessionRequest request, CancellationToken ct)
     {
         Rules.Require(request.Limit is >= 1 and <= 12, "Limit must be 1..12.");
-        Rules.Require(!request.ExtraPractice || request.VocabularyIds?.Count > 0,
+        Rules.Require(!request.ExtraPractice || request.VocabularyIds?.Count > 0 || request.MeaningIds?.Count > 0,
             "Extra practice requires explicit vocabularyIds.");
         await using var tx = await LearningMutation.Lock(db, ct);
         var now = DateTimeOffset.UtcNow;
-        var query = db.Vocabularies
-            .Include(v => v.LearningProgress)
-            .Include(v => v.VocabularyMeanings)
-            .ThenInclude(m => m.VocabularyExamples)
-            .Where(v => v.DeletedAt == null && (v.LearningProgress == null || !v.LearningProgress.IsSuspended));
-        List<Vocabulary> selected;
-        if (request.VocabularyIds is { Count: > 0 } ids)
+        var query = db.VocabularyMeanings
+            .Include(m => m.Vocabulary)
+            .Include(m => m.Progress)
+            .Include(m => m.VocabularyExamples)
+            .Where(m => m.DeletedAt == null && m.Vocabulary.DeletedAt == null && !m.Vocabulary.IsSuspended);
+        var eligible = query.Where(m => m.Progress == null || m.Progress.Level == 0 || m.Progress.NextReviewAt <= now);
+        List<VocabularyMeaning> selected;
+        if (request.MeaningIds is { Count: > 0 } meanings)
         {
-            Rules.Require(ids.Count <= 12 && ids.Distinct().Count() == ids.Count, "Provide 1..12 unique vocabulary IDs.");
-            selected = await query.Where(v => ids.Contains(v.Id)).ToListAsync(ct);
-            Rules.Require(selected.Count == ids.Count, "Vocabulary missing, deleted or suspended.");
-            selected = ids.Select(id => selected.Single(v => v.Id == id)).ToList();
-            Rules.Require(request.ExtraPractice || selected.All(v => v.LearningProgress == null || v.LearningProgress.FirstLearnedAt == null || v.LearningProgress.NextReviewAt <= now),
-                "Not-due words require extraPractice=true.",
-                409);
+            Rules.Require(meanings.Distinct().Count() == meanings.Count && request.VocabularyIds is not { Count: > 0 },
+                "Provide unique meaning IDs or vocabulary IDs.");
+            var candidates = request.ExtraPractice ? query : eligible;
+            selected = await candidates.Where(m => meanings.Contains(m.Id)).ToListAsync(ct);
+            Rules.Require(selected.Count == meanings.Count, "Meaning is missing, suspended or not due.", 409);
+            selected = meanings.Select(id => selected.Single(m => m.Id == id)).ToList();
+        }
+        else if (request.VocabularyIds is { Count: > 0 } ids)
+        {
+            Rules.Require(ids.Distinct().Count() == ids.Count, "Provide unique vocabulary IDs.");
+            var candidates = request.ExtraPractice ? query : eligible;
+            selected = await candidates.Where(m => ids.Contains(m.VocabularyId))
+                .OrderBy(m => m.DisplayOrder).ThenBy(m => m.Id).ToListAsync(ct);
+            Rules.Require(ids.All(id => selected.Any(m => m.VocabularyId == id)), "Vocabulary is missing, suspended or not due.", 409);
+            selected = ids.SelectMany(id => selected.Where(m => m.VocabularyId == id)).Take(request.Limit).ToList();
         }
         else
         {
-            var due = await query
-                .Where(v => v.LearningProgress != null && v.LearningProgress.FirstLearnedAt != null && v.LearningProgress.NextReviewAt <= now)
-                .OrderBy(v => v.LearningProgress!.NextReviewAt)
-                .ThenBy(v => v.Id)
-                .Take(request.Limit)
-                .ToListAsync(ct);
-            var fresh = await query
-                .Where(v => v.LearningProgress == null || v.LearningProgress.FirstLearnedAt == null)
-                .OrderBy(v => v.CreatedAt)
-                .ThenBy(v => v.Id)
-                .Take(request.Limit)
-                .ToListAsync(ct);
+            var due = await eligible.Where(m => m.Progress != null && m.Progress.Level > 0)
+                .OrderBy(m => m.Progress!.NextReviewAt).ThenBy(m => m.Id).Take(request.Limit).ToListAsync(ct);
+            var fresh = await eligible.Where(m => m.Progress == null || m.Progress.Level == 0)
+                .OrderBy(m => m.CreatedAt).ThenBy(m => m.Id).Take(request.Limit).ToListAsync(ct);
             var oldCount = Math.Min(due.Count, fresh.Count > 0 ? Math.Min(8, request.Limit) : request.Limit);
-            var newcomers = fresh.Take(request.Limit - oldCount).ToList();
-            var old = due.Take(oldCount).ToList();
-            selected = [];
-            while (old.Count > 0 || newcomers.Count > 0)
-            {
-                for (var n = 0; n < 2 && old.Count > 0; n++)
-                {
-                    selected.Add(old[0]);
-                    old.RemoveAt(0);
-                }
-                if (newcomers.Count > 0)
-                {
-                    selected.Add(newcomers[0]);
-                    newcomers.RemoveAt(0);
-                }
-            }
-            selected.AddRange(due.Skip(oldCount).Take(request.Limit - selected.Count));
+            selected = due.Take(oldCount).Concat(fresh).Concat(due.Skip(oldCount)).Take(request.Limit).ToList();
         }
-        Rules.Require(selected.Count > 0, "No eligible words available.", 409);
-        var selectedIds = selected.Select(v => v.Id).ToArray();
-        Rules.Require(!await db.SessionWords.AnyAsync(w => selectedIds.Contains(w.VocabularyId) && w.Session.Status == PracticeSessionStatus.InProgress,
-            ct),
-            "A selected word is already in an active session; finish or abandon that session.",
-            409);
-        Rules.Require(selected.All(v => v.VocabularyMeanings.Count > 0), "Each selected word needs a meaning.", 409);
+        Rules.Require(selected.Count > 0, "No eligible meanings available.", 409);
+        var selectedIds = selected.Select(m => m.Id).ToArray();
+        var vocabularyIds = selected.Select(m => m.VocabularyId).ToArray();
+        Rules.Require(!await db.SessionWords.AnyAsync(w => w.Session.Status == PracticeSessionStatus.InProgress &&
+            (w.IsLegacy ? vocabularyIds.Contains(w.VocabularyId) : w.MeaningId != null && selectedIds.Contains(w.MeaningId.Value)), ct),
+            "A selected meaning is already in an active session; finish or abandon that session.", 409);
+        var terms = selected.Select(m => m.Vocabulary.NormalizedTerm).Distinct().ToArray();
+        var referenceTranslations = await db.DictionaryEntries.Where(e => terms.Contains(e.NormalizedTerm))
+            .SelectMany(e => e.Senses.Select(m => new { e.NormalizedTerm, m.MeaningVi })).ToListAsync(ct);
+        var personalTranslations = await db.VocabularyMeanings.Where(m => vocabularyIds.Contains(m.VocabularyId) && m.DeletedAt == null)
+            .Select(m => new { m.Vocabulary.NormalizedTerm, m.MeaningVi }).ToListAsync(ct);
+        var known = personalTranslations.Concat(referenceTranslations).ToLookup(m => m.NormalizedTerm, m => Rules.Normalize(m.MeaningVi));
         var distractors = await db.VocabularyMeanings
             .AsNoTracking()
-            .Where(m => m.Vocabulary.DeletedAt == null)
+            .Where(m => m.Vocabulary.DeletedAt == null && m.DeletedAt == null)
             .OrderBy(m => m.Id)
             .Take(300)
             .Select(m => new
@@ -156,12 +156,12 @@ public sealed class Service(AppDbContext db) : IService
         };
         for (var i = 0; i < selected.Count; i++)
         {
-            var v = selected[i];
-            var m = v.VocabularyMeanings.OrderBy(m => m.DisplayOrder).First();
+            var m = selected[i];
+            var v = m.Vocabulary;
             var example = m.VocabularyExamples
-                .OrderBy(e => e.Id).FirstOrDefault(e => !string.IsNullOrWhiteSpace(e.ClozeAnswer) && e.ClozeSentenceEn?.Contains("________") == true);
+                .OrderBy(e => e.Id).FirstOrDefault(e => Cloze.CanUse(v.Term, e));
             var first = (ExerciseType)(i % 4);
-            if (!request.AudioEnabled || string.IsNullOrWhiteSpace(v.AudioUrl))
+            if (!request.AudioEnabled || (!OfflineAudio.IsLocalPath(v.AudioUrl) && !audio.CanSpeak))
             {
                 if (first is ExerciseType.ListenChoose or ExerciseType.ListenType) first = ExerciseType.MeaningMcq;
             }
@@ -171,7 +171,7 @@ public sealed class Service(AppDbContext db) : IService
                 var prompt = type switch
                 {
                     ExerciseType.MeaningMcq => v.Term,
-                    ExerciseType.FillBlank => example!.ClozeSentenceEn!,
+                    ExerciseType.FillBlank => example!.ClozeSentenceEn! + "\nNghĩa: " + m.MeaningVi,
                     _ => "Listen to the audio."
                 };
                 var expected = type switch
@@ -185,26 +185,28 @@ public sealed class Service(AppDbContext db) : IService
                     ExerciseType.MeaningMcq => Options(m.MeaningVi,
                         distractors
                         .Where(d => d.Term != v.Term)
-                        .Select(d => d.MeaningVi)),
+                        .Select(d => d.MeaningVi)
+                        .Where(value => !known[v.NormalizedTerm].Contains(Rules.Normalize(value)))),
                     ExerciseType.ListenChoose => Options(v.Term, distractors.Where(d => d.Term != v.Term).Select(d => d.Term)),
                     _ => []
                 };
                 return new PlannedQuestion(Guid.NewGuid(), order, type, AttemptRole.Assessment,
-                    m.Id, type == ExerciseType.FillBlank ? example!.Id : null, prompt, expected,
+                    Semantic(type) ? m.Id : null, type == ExerciseType.FillBlank ? example!.Id : null, prompt, expected,
                     type is ExerciseType.ListenChoose or ExerciseType.ListenType ? v.AudioUrl : null, options);
             }
             List<PlannedQuestion> questions = [Make(first, (i + 1) * 10)];
-            var fresh = v.LearningProgress == null || v.LearningProgress.FirstLearnedAt == null;
+            var fresh = m.Progress == null || m.Progress.Level == 0;
             if (fresh || first is ExerciseType.ListenChoose or ExerciseType.ListenType) questions.Add(Make(first == ExerciseType.MeaningMcq && example != null ? ExerciseType.FillBlank : ExerciseType.MeaningMcq,
                 (selected.Count + i + 1) * 10));
             session.SessionWords.Add(new SessionWord
             {
                 Id = Guid.NewGuid(),
                 Vocabulary = v,
+                Meaning = m,
                 Source = request.ExtraPractice ? SessionWordSource.ExtraPractice : fresh ? SessionWordSource.NewWord : SessionWordSource.DueReview,
                 Position = i + 1,
-                LevelAtStart = v.LearningProgress?.Level ?? 0,
-                QuestionPlan = JsonSerializer.Serialize(new WordPlan(v.Term, v.Ipa, questions))
+                LevelAtStart = m.Progress?.Level ?? 0,
+                QuestionPlan = JsonSerializer.Serialize(new WordPlan(v.Term, m.IpaOverride ?? v.Ipa, questions, m.MeaningVi))
             });
         }
         db.PracticeSessions.Add(session);
@@ -231,15 +233,39 @@ public sealed class Service(AppDbContext db) : IService
         var session = await Find(id, ct);
         Rules.Require(session.Status == PracticeSessionStatus.InProgress, "Session is closed.", 409);
         var next = Pending(session);
-        return next is { } item
-            ? new(item.Question.Id,
+        if (next is not { } item) return null;
+        var audioUrl = OfflineAudio.IsLocalPath(item.Question.AudioUrl) ? item.Question.AudioUrl
+            : !Semantic(item.Question.Type) && audio.CanSpeak
+                ? $"/api/practice-sessions/{id}/questions/{item.Question.Id}/audio" : null;
+        return new(item.Question.Id,
             item.Word.Id,
             item.Question.Type,
             item.Question.Role,
             item.Question.Prompt,
-            item.Question.AudioUrl,
-                item.Question.Options)
-            : null;
+            audioUrl,
+            item.Question.Options);
+    }
+
+    public async Task<byte[]?> QuestionAudio(Guid id, Guid questionId, CancellationToken ct)
+    {
+        var session = await Find(id, ct);
+        if (session.Status != PracticeSessionStatus.InProgress || Pending(session) is not { } item ||
+            item.Question.Id != questionId || Semantic(item.Question.Type)) return null;
+        return await audio.Speak(Plan(item.Word).Term, ct);
+    }
+
+    public async Task SkipAudio(Guid id, Guid questionId, CancellationToken ct)
+    {
+        await using var tx = await LearningMutation.Lock(db, ct);
+        var session = await Find(id, ct);
+        Rules.Require(session.Status == PracticeSessionStatus.InProgress, "Session is closed.", 409);
+        var (word, question) = Pending(session) ?? throw new ApiException(409, "No unanswered question remains.");
+        Rules.Require(question.Id == questionId && !Semantic(question.Type), "Only the current listening question can be skipped.", 409);
+        var plan = Plan(word);
+        plan.Questions.RemoveAll(q => q.Id == questionId);
+        word.QuestionPlan = JsonSerializer.Serialize(plan);
+        await db.SaveChangesAsync(ct);
+        await tx.CommitAsync(ct);
     }
 
     public async Task<AnswerResponse> Answer(Guid id, AnswerRequest request, CancellationToken ct)
@@ -252,7 +278,7 @@ public sealed class Service(AppDbContext db) : IService
         var next = Pending(session) ?? throw new ApiException(409, "No unanswered question remains.");
         var (word, q) = next;
         Rules.Require(q.Id == request.QuestionId, "Question already answered or out of sequence.", 409);
-        Rules.Require(word.Vocabulary.DeletedAt == null && word.Vocabulary.LearningProgress?.IsSuspended != true,
+        Rules.Require(word.Vocabulary.DeletedAt == null && !word.Vocabulary.IsSuspended && word.Meaning?.DeletedAt == null,
             "Word was archived or suspended; abandon this session.",
             409);
         var correct = Rules.Normalize(request.Answer) == Rules.Normalize(q.Expected);
@@ -267,11 +293,11 @@ public sealed class Service(AppDbContext db) : IService
             SubmittedAnswer = request.Answer,
             IsCorrect = correct,
             AnsweredAt = DateTimeOffset.UtcNow,
-            MeaningId = q.MeaningId.HasValue && await db.VocabularyMeanings.AnyAsync(m => m.Id == q.MeaningId, ct) ? q.MeaningId : null,
+            MeaningId = Semantic(q.Type) && q.MeaningId.HasValue && await db.VocabularyMeanings.AnyAsync(m => m.Id == q.MeaningId, ct) ? q.MeaningId : null,
             ExampleId = q.ExampleId.HasValue && await db.VocabularyExamples.AnyAsync(e => e.Id == q.ExampleId, ct) ? q.ExampleId : null
         };
         db.ExerciseAttempts.Add(attempt);
-        if (!correct)
+        if (!correct && Semantic(q.Type))
         {
             var plan = Plan(word);
             if (q.Role == AttemptRole.Reinforcement || !plan.Questions.Any(p => p.Role == AttemptRole.Reinforcement))
@@ -305,24 +331,30 @@ public sealed class Service(AppDbContext db) : IService
             Rules.Require(Pending(session) == null, "Answer all assessment and reinforcement questions first.", 409);
             foreach (var w in session.SessionWords)
             {
-                Rules.Require(w.Vocabulary.DeletedAt == null && w.Vocabulary.LearningProgress?.IsSuspended != true,
-                    "An archived/suspended word requires abandoning this session.",
-                    409);
+                Rules.Require(w.Vocabulary.DeletedAt == null && !w.Vocabulary.IsSuspended && w.Meaning?.DeletedAt == null,
+                    "An archived/suspended meaning requires abandoning this session.", 409);
                 if (w.Source == SessionWordSource.ExtraPractice) continue;
-                var assessments = w.ExerciseAttempts.Where(a => a.Role == AttemptRole.Assessment).ToArray();
-                var passed = assessments.Length > 0 && assessments.All(a => a.IsCorrect) && assessments.Any(a => a.ExerciseType is ExerciseType.MeaningMcq or ExerciseType.FillBlank);
-                var progress = w.Vocabulary.LearningProgress;
-                if (progress == null)
+                var target = w.Meaning;
+                if (w.IsLegacy)
                 {
-                    progress = new LearningProgress
-                    {
-                        Vocabulary = w.Vocabulary
-                    };
-                    db.LearningProgress.Add(progress);
+                    var ids = Plan(w).Questions.Where(q => q.Role == AttemptRole.Assessment && Semantic(q.Type))
+                        .Select(q => q.MeaningId).Distinct().ToArray();
+                    if (ids.Length != 1 || ids[0] == null) continue;
+                    target = await db.VocabularyMeanings.Include(m => m.Progress)
+                        .SingleOrDefaultAsync(m => m.Id == ids[0] && m.VocabularyId == w.VocabularyId && m.DeletedAt == null, ct);
+                    var legacy = w.Vocabulary.LearningProgress;
+                    if (legacy?.LastReviewedAt != null && legacy.MappedMeaningId != target?.Id) continue;
+                    if (target?.Progress?.LastReviewedAt != legacy?.LastReviewedAt) continue;
                 }
+                if (target == null) continue;
+                var assessments = w.ExerciseAttempts.Where(a => a.Role == AttemptRole.Assessment &&
+                    Semantic(a.ExerciseType) && a.MeaningId == target.Id).ToArray();
+                if (assessments.Length == 0) continue;
+                var passed = assessments.All(a => a.IsCorrect);
+                var progress = target.Progress ??= new MeaningProgress { MeaningId = target.Id };
                 Rules.Require(progress.Level == w.LevelAtStart,
-                    "Progress changed since session start; abandon and restart.",
-                    409);
+                    "Progress changed since session start; abandon and restart.", 409);
+                w.MeaningId = target.Id;
                 var before = progress.Level;
                 var after = (short)(passed ? Math.Min(5, before + 1) : before == 0 ? 0 : Math.Max(1, before - 1));
                 var previous = progress.LastReviewedAt;
@@ -331,7 +363,7 @@ public sealed class Service(AppDbContext db) : IService
                 if (passed && before == 5)
                 {
                     var last = await db.ReviewEvaluations
-                        .Where(e => e.SessionWord.VocabularyId == w.VocabularyId)
+                        .Where(e => e.SessionWord.MeaningId == target.Id)
                         .OrderByDescending(e => e.EvaluatedAt)
                         .Select(e => new
                         {
@@ -350,7 +382,6 @@ public sealed class Service(AppDbContext db) : IService
                 if (after > 0) progress.FirstLearnedAt ??= now;
                 progress.LastReviewedAt = now;
                 progress.NextReviewAt = after > 0 ? now + interval : null;
-                progress.UpdatedAt = now;
                 db.ReviewEvaluations.Add(new ReviewEvaluation
                 {
                     SessionWord = w,

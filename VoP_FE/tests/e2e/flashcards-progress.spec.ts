@@ -64,10 +64,11 @@ test('Flashcard saves real reviews, survives API failure, locks pending actions 
   await page.keyboard.press('Enter')
   const menu = page.getByRole('listbox')
   await expect(menu).toBeVisible()
-  await expect(
-    menu.getByRole('option', { name: 'Tất cả các từ' })
-  ).toHaveAttribute('data-state', 'checked')
+  const selected = menu.getByRole('option', { name: 'Tất cả các từ' })
+  await expect(selected).toHaveAttribute('data-state', 'checked')
+  await expect(selected).toBeFocused()
   await page.keyboard.press('ArrowDown')
+  await expect(menu.getByRole('option', { name: 'Chưa học' })).toBeFocused()
   await page.keyboard.press('Enter')
   await expect(page).toHaveURL(/level=0/)
   await expect(filter).toHaveText('Chưa học')
@@ -83,18 +84,21 @@ test('Progress matches real summary and daily API, period changes and links work
   const data = await (await request.get('/api/dashboard?days=14')).json()
   await page.goto('/progress')
   await expect(page.locator('.mastery-number > strong')).toHaveText(
-    `${data.levels.find((l: { level: number }) => l.level === 5).count} / ${data.totalWords}`
+    `${data.levels.find((l: { level: number }) => l.level === 5).count} / ${data.totalMeanings}`
   )
   await expect(page.locator('.progress-stats')).toContainText(
     `${data.correctAssessments} / ${data.assessmentAnswers}`
   )
   await expect(page.locator('.journey-row')).toHaveCount(5)
   await expect(
-    page.getByRole('link', { name: `${data.newWords} từ chưa học` })
+    page.getByRole('link', { name: `${data.newMeanings} nghĩa chưa học` })
   ).toHaveAttribute('href', '/library?filter=0')
   await page.getByText('Xem số liệu từng ngày').click()
   await expect(page.locator('.progress-daily tbody tr')).toHaveCount(14)
-  await page.getByLabel('Khoảng thời gian hoạt động').selectOption('30')
+  await page.getByLabel('Khoảng thời gian hoạt động').click()
+  await page
+    .getByRole('option', { name: '30 ngày gần đây', exact: true })
+    .click()
   await expect(page).toHaveURL(/days=30/)
   await expect(page.locator('.progress-daily tbody tr')).toHaveCount(30)
   await page.locator('.journey-row.level-2').click()
@@ -247,9 +251,12 @@ test('Single card ends, keyboard scroll works, and zero progress is not fabricat
     route.fulfill({
       json: {
         totalWords: 0,
-        learnedWords: 0,
-        newWords: 0,
-        dueWords: 0,
+        totalMeanings: 0,
+        learnedMeanings: 0,
+        newMeanings: 0,
+        availableNewMeanings: 0,
+        dueMeanings: 0,
+        masteredMeanings: 0,
         levels: [0, 1, 2, 3, 4, 5].map((level) => ({ level, count: 0 })),
         assessmentAnswers: 0,
         correctAssessments: 0,

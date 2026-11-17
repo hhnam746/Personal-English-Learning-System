@@ -59,14 +59,24 @@ html[data-theme='dark'] body::after {
 }
 .app-shell .nav-item {
   font-weight: 650;
+  position: relative;
+  isolation: isolate;
 }
 .app-shell .nav-item.active {
+  background: transparent;
+  color: var(--accent);
+}
+.app-shell .nav-item > .nav-selection {
+  display: block;
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
   background: linear-gradient(
     130deg,
     rgba(255, 240, 229, 0.85),
     rgba(255, 201, 165, 0.53)
   );
-  color: var(--accent);
   box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.75);
   border-radius: 25px;
 }
@@ -79,11 +89,6 @@ html[data-theme='dark'] body::after {
   background: rgba(255, 255, 255, 0.29);
   border-color: rgba(255, 255, 255, 0.75);
   box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.65);
-}
-.app-shell .top-search kbd {
-  background: rgba(105, 92, 102, 0.08);
-  border-radius: 9px;
-  padding: 3px 6px;
 }
 .app-shell .breadcrumb {
   color: var(--ink);
@@ -105,9 +110,8 @@ html[data-theme='dark'] .app-shell .sidebar {
   background: rgba(255, 255, 255, 0.03);
   border-color: rgba(255, 255, 255, 0.12);
 }
-html[data-theme='dark'] .app-shell .nav-item.active {
+html[data-theme='dark'] .app-shell .nav-selection {
   background: rgba(253, 95, 1, 0.15);
-  color: var(--accent);
   box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.09);
 }
 @media (min-width: 1280px) {
@@ -124,7 +128,7 @@ html[data-theme='dark'] .app-shell .nav-item.active {
     padding-right: 4px;
   }
   .app-shell .brand {
-    margin: 4px 28px 42px;
+    margin: 4px 20px 42px;
   }
   .app-shell .nav-item {
     font-size: 16px;
@@ -229,7 +233,7 @@ html[data-theme='dark'] .app-shell .nav-item.active {
   }
 }
 @media (min-width: 1280px) {
-  .app-shell .nav-item > span {
+  .app-shell .nav-item > .nav-label {
     white-space: nowrap;
   }
 }
@@ -390,7 +394,7 @@ html[data-theme='light'] {
   background: var(--glass-dialog);
   border-color: var(--glass-edge);
 }
-.app-shell .nav-item > span {
+.app-shell .nav-item > .nav-label {
   white-space: nowrap;
 }
 .app-shell .top-search input {

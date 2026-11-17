@@ -59,3 +59,26 @@ Open http://127.0.0.1:5080/swagger to browse endpoints and use **Try it out**. T
 A Debug build defaults to Development when neither host environment variable nor `--environment` is supplied. This also applies to Rider's **.NET Project → VoP.Api** configuration, which may bypass launchSettings.json. Local user secrets are therefore loaded and Swagger is enabled without manual environment setup. Explicit `DOTNET_ENVIRONMENT`, `ASPNETCORE_ENVIRONMENT`, and command-line settings retain normal precedence. Release builds still default to Production with Swagger disabled.
 
 Open http://127.0.0.1:5080/ or http://127.0.0.1:5080/swagger after Run; `/` redirects to Swagger only in Development. Stop an existing API instance before starting another on the same port. The `http` launch profile also opens Swagger when the IDE uses launch profiles.
+
+## Từ điển offline và tiến độ theo nghĩa
+
+Sau khi sao lưu và áp dụng migration EF, import thủ công với SQLite CLI có sẵn:
+
+```sh
+dotnet run --project VoP.Api -- --import-dictionary /absolute/path/dictionary_en_vi.db
+```
+
+Lệnh dùng connection string đã cấu hình, đọc SQLite chỉ đọc và in thống kê JSON.
+Chạy lại cùng file không tạo bản sao. Dùng cùng bộ định danh nguồn cho các bản cập nhật.
+Các dữ liệu tra cứu lấy từ bản [Skypedia](https://github.com/skypediacode/english-vietnamese-dictionary), công bố theo CC BY-SA 4.0. Xem [ghi công](https://github.com/skypediacode/english-vietnamese-dictionary/blob/main/ATTRIBUTION.md) và [giấy phép](https://github.com/skypediacode/english-vietnamese-dictionary/blob/main/LICENSE).
+Ví dụ trong nguồn có thể được tạo tự động. Ứng dụng chỉ dùng ví dụ cho bài điền từ sau khi người dùng xác nhận và hệ thống kiểm tra vị trí trống cùng đáp án.
+
+Migration giữ bảng `learning_progress` và lịch sử cũ. Chỉ sao chép trạng thái sang nghĩa khi lịch sử đánh giá nhận diện cùng một nghĩa và đối chiếu được Level cùng lịch ôn. Kiểm tra số bản ghi bằng `mapped_meaning_id` trong `learning_progress`. Trong kho từ, mở chi tiết rồi chọn **Lịch sử ôn tập** để xem dữ liệu trước migration.
+
+Pronunciation mặc định dùng giọng Samantha có sẵn trên macOS. Có thể tắt bằng `OfflinePronunciation__Enabled=false`. Đặt tệp âm thanh nội bộ tại `VoP.Api/wwwroot/audio` và dùng đường dẫn `/audio/<name>.wav` (hoặc mp3, ogg). Khi thiếu audio, phiên luyện vẫn hoàn thành bằng phần chữ.
+
+Chạy API checks kèm hai lượt import trên DB riêng:
+
+```sh
+VOP_TEST_DICTIONARY=/absolute/path/dictionary_en_vi.db dotnet run --project VoP.ApiChecks
+```

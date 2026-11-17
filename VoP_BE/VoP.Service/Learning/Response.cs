@@ -8,7 +8,14 @@ public record ProgressResponse(Guid VocabularyId,
     bool IsSuspended,
     DateTimeOffset? FirstLearnedAt,
     DateTimeOffset? LastReviewedAt,
-    DateTimeOffset? NextReviewAt);
+    DateTimeOffset? NextReviewAt,
+    Guid MeaningId,
+    string MeaningVi);
+
+public record WordProgressResponse(Guid VocabularyId, string Term, bool IsSuspended,
+    IReadOnlyList<ProgressResponse> Meanings, LegacyProgressResponse? Legacy);
+public record LegacyProgressResponse(short Level, DateTimeOffset? FirstLearnedAt,
+    DateTimeOffset? LastReviewedAt, DateTimeOffset? NextReviewAt, Guid? MappedMeaningId);
 
 public record EvaluationResponse(Guid Id,
     Guid SessionWordId,
@@ -16,4 +23,6 @@ public record EvaluationResponse(Guid Id,
     short LevelBefore,
     short LevelAfter,
     DateTimeOffset? NextReviewAt,
-    DateTimeOffset EvaluatedAt);
+    DateTimeOffset EvaluatedAt,
+    Guid? MeaningId,
+    bool IsLegacy);

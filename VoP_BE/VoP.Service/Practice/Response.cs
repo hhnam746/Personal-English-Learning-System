@@ -23,7 +23,10 @@ public record SessionWordResponse(Guid Id,
     SessionWordSource Source,
     short LevelAtStart,
     string Term,
-    string? Ipa);
+    string? Ipa,
+    Guid? MeaningId,
+    string? MeaningVi,
+    bool IsLegacy);
 
 public record AnswerResponse(Guid AttemptId, bool IsCorrect, string CorrectAnswer, AttemptRole Role);
 

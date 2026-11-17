@@ -6,6 +6,10 @@ public class VocabularyMeaning
 {
     public Guid Id { get; set; }
     public Guid VocabularyId { get; set; }
+    public DateTimeOffset? DeletedAt { get; set; }
+    public long? DictionaryEntryId { get; set; }
+    public long? DictionaryDefinitionId { get; set; }
+    public MeaningProgress? Progress { get; set; }
     public string MeaningVi { get; set; } = null!;
     public string? PartOfSpeech { get; set; }
     public string? IpaOverride { get; set; }

@@ -16,32 +16,34 @@ public sealed class Service(AppDbContext db) : IService
     {
         Rules.Paging(page, pageSize);
         Rules.Require(level == null || level is >= 0 and <= 5, "Level must be 0..5.");
-        var query = db.Vocabularies
-            .AsNoTracking()
-            .Include(v => v.LearningProgress)
-            .Include(v => v.VocabularyMeanings)
-            .ThenInclude(m => m.VocabularyExamples)
-            .Where(v => v.DeletedAt == null && (v.LearningProgress == null || !v.LearningProgress.IsSuspended));
-        if (level != null) query = query.Where(v => (v.LearningProgress == null ? 0 : v.LearningProgress.Level) == level);
+        var query = db.VocabularyMeanings.AsNoTracking()
+            .Where(m => m.DeletedAt == null && m.Vocabulary.DeletedAt == null && !m.Vocabulary.IsSuspended);
+        if (level != null) query = query.Where(m => (m.Progress == null ? 0 : m.Progress.Level) == level);
         var total = await query.CountAsync(ct);
         var items = await query
-            .OrderBy(v => v.NormalizedTerm)
-            .ThenBy(v => v.Id)
+            .Include(m => m.Vocabulary)
+            .Include(m => m.Progress)
+            .Include(m => m.VocabularyExamples)
+            .OrderBy(m => m.Vocabulary.NormalizedTerm)
+            .ThenBy(m => m.DisplayOrder)
+            .ThenBy(m => m.Id)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync(ct);
-        return new(items.Select(VocabularyResponse.From).ToArray(), page, pageSize, total);
+        // Tracking fixup is disabled, so populate only the card's own meaning.
+        foreach (var item in items) item.Vocabulary.VocabularyMeanings = [item];
+        return new(items.Select(m => VocabularyResponse.From(m.Vocabulary, m.Id)).ToArray(), page, pageSize, total);
     }
 
     public async Task<ReviewResponse> Rate(Guid id, RatingRequest request, CancellationToken ct)
     {
         Rules.Require(Enum.IsDefined(request.Rating), "Invalid flashcard rating.");
         await using var tx = await LearningMutation.Lock(db, ct);
-        Rules.Require(await db.Vocabularies.AnyAsync(v => v.Id == id && v.DeletedAt == null && (v.LearningProgress == null || !v.LearningProgress.IsSuspended),
+        Rules.Require(await db.Vocabularies.AnyAsync(v => v.Id == id && v.DeletedAt == null && !v.IsSuspended,
              ct),
              "Vocabulary unavailable.",
              404);
-        Rules.Require(request.MeaningId == null || await db.VocabularyMeanings.AnyAsync(m => m.Id == request.MeaningId && m.VocabularyId == id, ct),
+        Rules.Require(request.MeaningId == null || await db.VocabularyMeanings.AnyAsync(m => m.Id == request.MeaningId && m.VocabularyId == id && m.DeletedAt == null, ct),
              "Meaning does not belong to vocabulary.");
         var review = new FlashcardReview
         {

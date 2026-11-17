@@ -211,17 +211,17 @@ export function FlashcardStudy({ level }: { level?: number }) {
             </span>
           </div>
           <Card
-            key={word.id}
+            key={word.meanings[0]?.id ?? word.id}
             word={word}
             pending={rate.isPending}
             onRate={(rating) => {
               if (sending.current) return
               sending.current = true
               rate.mutate(
-                { id: word.id, rating },
+                { id: word.id, meaningId: word.meanings[0]?.id, rating },
                 {
                   onSuccess: () => {
-                    setRatings((old) => ({ ...old, [word.id]: rating }))
+                    setRatings((old) => ({ ...old, [word.meanings[0]?.id ?? word.id]: rating }))
                     if (page < total) setPage(page + 1)
                     else setFinished(true)
                   },

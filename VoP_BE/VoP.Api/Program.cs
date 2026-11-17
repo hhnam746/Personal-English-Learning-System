@@ -32,6 +32,8 @@ builder.Services.AddScoped<VoP.Service.Practice.IService, VoP.Service.Practice.S
 builder.Services.AddScoped<VoP.Service.Learning.IService, VoP.Service.Learning.Service>();
 builder.Services.AddScoped<VoP.Service.Flashcards.IService, VoP.Service.Flashcards.Service>();
 builder.Services.AddScoped<VoP.Service.Dashboard.IService, VoP.Service.Dashboard.Service>();
+builder.Services.AddScoped<VoP.Service.Dictionary.IService, VoP.Service.Dictionary.Service>();
+builder.Services.AddSingleton(new OfflineAudio(builder.Configuration.GetValue("OfflinePronunciation:Enabled", OperatingSystem.IsMacOS())));
 builder.Services.AddControllers().AddJsonOptions(o =>
 {
     o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.SnakeCaseLower, false));
@@ -43,7 +45,12 @@ builder.Services.AddSwaggerGen(options =>
 {
     options.SwaggerDoc("v1", new OpenApiInfo { Title = "VOP API", Version = "v1" });
 });
-var app = builder.Build();
+await using var app = builder.Build();
+if (builder.Configuration["import-dictionary"] is { } dictionaryFile)
+{
+    await VoP.Service.Dictionary.Import.Run(app.Services.GetRequiredService<NpgsqlDataSource>(), dictionaryFile);
+    return;
+}
 app.Use(async (HttpContext context, RequestDelegate next) =>
 {
     try
@@ -81,10 +88,11 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
     app.MapGet("/", () => Results.Redirect("/swagger")).ExcludeFromDescription();
 }
+app.UseStaticFiles();
 app.MapControllers();
 app.MapGet("/health", async (AppDbContext db, CancellationToken ct) =>
     await db.Database.CanConnectAsync(ct)
         ? Results.Ok(new { status = "healthy" })
         : Results.StatusCode(503));
-app.Run();
+await app.RunAsync();
 public partial class Program;

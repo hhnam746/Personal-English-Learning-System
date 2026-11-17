@@ -17,11 +17,15 @@ test('Dashboard live data, filters, period and persisted theme', async ({
     page.getByRole('heading', { name: 'Kho từ vựng', exact: true })
   ).toBeVisible()
   await page.goBack()
-  await page.getByLabel('Khoảng thời gian hoạt động').selectOption('14')
+  await page.getByLabel('Khoảng thời gian hoạt động').click()
+  await page
+    .getByRole('option', { name: '14 ngày gần đây', exact: true })
+    .click()
   await expect(page.locator('.line-chart circle')).toHaveCount(14)
   await page
     .getByRole('button', { name: 'Chuyển giao diện sáng hoặc tối' })
     .click()
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
   await page.reload()
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
   await page
@@ -38,6 +42,7 @@ test('Create, search, detail, edit multiple meanings, reject duplicate and delet
     .first()
     .click()
   const modal = page.getByRole('dialog')
+  await modal.getByRole('button', { name: 'Nhập thủ công' }).click()
   await modal.getByRole('button', { name: 'Lưu từ mới', exact: true }).click()
   await expect(
     modal.getByText('Nhập từ tiếng Anh', { exact: true })
@@ -46,7 +51,8 @@ test('Create, search, detail, edit multiple meanings, reject duplicate and delet
   await modal
     .getByLabel('Nghĩa tiếng Việt', { exact: true })
     .fill('bền bỉ trong thử thách')
-  await modal.getByLabel('Từ loại', { exact: true }).selectOption('adjective')
+  await modal.getByLabel('Từ loại', { exact: true }).click()
+  await page.getByRole('option', { name: 'Tính từ', exact: true }).click()
   await modal
     .getByLabel('Câu ví dụ tiếng Anh', { exact: true })
     .fill('Remain resilient.')
@@ -57,7 +63,7 @@ test('Create, search, detail, edit multiple meanings, reject duplicate and delet
   await advanced.locator('summary').click()
   await modal.getByRole('button', { name: 'Lưu từ mới', exact: true }).click()
   await expect(
-    modal.getByText('URL âm thanh phải bắt đầu', { exact: false })
+    modal.getByText('Nhập đường dẫn âm thanh nội bộ hoặc URL HTTP(S) cũ', { exact: false })
   ).toBeVisible()
   await modal
     .getByLabel('URL âm thanh (không bắt buộc)')
@@ -122,7 +128,8 @@ test('Create, search, detail, edit multiple meanings, reject duplicate and delet
   await page
     .getByRole('button', { name: 'Thêm từ mới', exact: true })
     .first()
-    .click()
+    .press('Enter')
+  await modal.getByRole('button', { name: 'Nhập thủ công' }).click()
   await modal.getByLabel('Từ / Cụm từ tiếng Anh').fill(prefix)
   await modal.getByLabel('Nghĩa tiếng Việt', { exact: true }).fill('trùng')
   await modal.getByRole('button', { name: 'Lưu từ mới', exact: true }).click()
@@ -154,6 +161,7 @@ test('Failed save keeps draft and Back protects unsaved edits', async ({
     bounds.y + bounds.height * 0.9
   )
   const modal = page.getByRole('dialog')
+  await modal.getByRole('button', { name: 'Nhập thủ công' }).click()
   await modal.getByLabel('Từ / Cụm từ tiếng Anh').fill(prefix + '-failure')
   await modal
     .getByLabel('Nghĩa tiếng Việt', { exact: true })
@@ -228,6 +236,7 @@ test('Dashboard start, resume after navigation and complete a real practice sess
   page,
   request
 }) => {
+  test.setTimeout(90_000)
   const previous = await (
     await request.get('/api/practice-sessions?pageSize=100')
   ).json()
@@ -237,14 +246,6 @@ test('Dashboard start, resume after navigation and complete a real practice sess
   const words = await (
     await request.get('/api/vocabularies?pageSize=100')
   ).json()
-  const meanings = new Map<string, string>(
-    words.items.map(
-      (w: { term: string; meanings: { meaningVi: string }[] }) => [
-        w.term,
-        w.meanings[0].meaningVi
-      ]
-    )
-  )
   await page.goto('/')
   await page
     .getByRole('link', { name: 'Bắt đầu luyện tập', exact: false })
@@ -283,18 +284,18 @@ test('Dashboard start, resume after navigation and complete a real practice sess
     )
     expect(questionResponse.status()).toBe(200)
     const q = await questionResponse.json()
+    const sessionWord = session.words.find(
+      (w: { id: string }) => w.id === q.sessionWordId
+    )
+    const word = words.items.find(
+      (w: { id: string }) => w.id === sessionWord.vocabularyId
+    )
     if (q.type === 'meaning_mcq') {
-      const correct = meanings.get(q.prompt)
+      const correct = word.meanings.find((m: { id: string }) => m.id === sessionWord.meaningId).meaningVi
       const choice =
         i === 0 ? q.options.find((o: string) => o !== correct) : correct
       await page.getByRole('radio', { name: choice, exact: true }).check()
     } else {
-      const sessionWord = session.words.find(
-        (w: { id: string }) => w.id === q.sessionWordId
-      )
-      const word = words.items.find(
-        (w: { id: string }) => w.id === sessionWord.vocabularyId
-      )
       const example = word.meanings
         .flatMap(
           (m: {
@@ -302,7 +303,7 @@ test('Dashboard start, resume after navigation and complete a real practice sess
           }) => m.examples
         )
         .find(
-          (e: { clozeSentenceEn: string }) => e.clozeSentenceEn === q.prompt
+          (e: { clozeSentenceEn: string }) => e.clozeSentenceEn === q.prompt.split("\n")[0]
         )
       await page
         .getByLabel('Câu trả lời', { exact: true })
@@ -320,10 +321,12 @@ test('Dashboard start, resume after navigation and complete a real practice sess
         await new Promise((resolve) => setTimeout(resolve, 400))
         await r.continue()
       })
+      const advanced = page.waitForResponse(r => r.url().endsWith('/next-question') && r.ok())
       await page.getByRole('button', { name: 'Tiếp tục', exact: true }).click()
       await expect(
         page.getByRole('button', { name: 'Kiểm tra', exact: true })
       ).toHaveCount(0)
+      await advanced
       await page.unroute('**/next-question')
     } else
       await page.getByRole('button', { name: 'Tiếp tục', exact: true }).click()
@@ -358,7 +361,8 @@ test('Library combines server search/filter/sort and paginates without dropping 
   }
   await page.goto('/library')
   await page.getByLabel('Tìm từ hoặc nghĩa tiếng Việt').fill(termPrefix)
-  await page.getByLabel('Sắp xếp từ').selectOption('alpha')
+  await page.getByLabel('Sắp xếp từ').click()
+  await page.getByRole('option', { name: 'Từ A đến Z', exact: true }).click()
   await page.getByRole('radio', { name: 'Chưa học', exact: true }).click()
   await expect(page.locator('tbody tr')).toHaveCount(20)
   await expect(page.locator('tbody tr').first()).toContainText(

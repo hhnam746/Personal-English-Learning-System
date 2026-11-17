@@ -13,18 +13,20 @@ public sealed class Service(AppDbContext db) : IService
         Rules.Require(days is >= 1 and <= 366, "days must be 1..366.");
         var now = DateTimeOffset.UtcNow;
         var since = new DateTimeOffset(now.UtcDateTime.Date.AddDays(1 - days), TimeSpan.Zero);
-        var words = await db.Vocabularies
-            .Where(v => v.DeletedAt == null)
-            .Select(v => new
-            {
-                Level = v.LearningProgress == null ? 0 : v.LearningProgress.Level,
-                IsSuspended = v.LearningProgress != null && v.LearningProgress.IsSuspended,
-                Next = v.LearningProgress == null ? null : v.LearningProgress.NextReviewAt
-            })
-            .ToListAsync(ct);
+        var words = await db.Vocabularies.CountAsync(v => v.DeletedAt == null, ct);
+        var meanings = await db.VocabularyMeanings
+            .Where(m => m.DeletedAt == null && m.Vocabulary.DeletedAt == null)
+            .GroupBy(m => m.Progress == null ? (short)0 : m.Progress.Level)
+            .Select(g => new { Level = g.Key, Count = g.Count(),
+                Available = g.Count(m => !m.Vocabulary.IsSuspended),
+                Due = g.Count(m => !m.Vocabulary.IsSuspended && m.Progress != null &&
+                    m.Progress.Level > 0 && m.Progress.NextReviewAt <= now) })
+            .ToDictionaryAsync(x => (int)x.Level, ct);
         var assessments = db.ExerciseAttempts.Where(a => a.Role == AttemptRole.Assessment);
-        var total = await assessments.CountAsync(ct);
-        var correct = await assessments.CountAsync(a => a.IsCorrect, ct);
+        var semantic = assessments.Where(a => a.ExerciseType == ExerciseType.MeaningMcq || a.ExerciseType == ExerciseType.FillBlank);
+        var listening = assessments.Where(a => a.ExerciseType == ExerciseType.ListenChoose || a.ExerciseType == ExerciseType.ListenType);
+        var total = await semantic.CountAsync(ct);
+        var correct = await semantic.CountAsync(a => a.IsCorrect, ct);
         // Aggregate in PostgreSQL; DateTime on PostgreSQL UTC-only offsets keeps calendar days independent of session timezone.
         var attemptsByDay = await db.ExerciseAttempts
             .Where(a => a.AnsweredAt >= since)
@@ -32,8 +34,8 @@ public sealed class Service(AppDbContext db) : IService
             .Select(g => new
             {
                 Date = g.Key,
-                Assessments = g.Count(a => a.Role == AttemptRole.Assessment),
-                Correct = g.Count(a => a.Role == AttemptRole.Assessment && a.IsCorrect),
+                Assessments = g.Count(a => a.Role == AttemptRole.Assessment && (a.ExerciseType == ExerciseType.MeaningMcq || a.ExerciseType == ExerciseType.FillBlank)),
+                Correct = g.Count(a => a.Role == AttemptRole.Assessment && a.IsCorrect && (a.ExerciseType == ExerciseType.MeaningMcq || a.ExerciseType == ExerciseType.FillBlank)),
                 Reinforcements = g.Count(a => a.Role == AttemptRole.Reinforcement)
             })
             .ToDictionaryAsync(a => DateOnly.FromDateTime(a.Date), ct);
@@ -59,13 +61,18 @@ public sealed class Service(AppDbContext db) : IService
                  sessionsByDay.GetValueOrDefault(date));
         }).ToArray();
         return new(
-            words.Count,
-            words.Count(v => v.Level > 0),
-            words.Count(v => v.Level == 0),
-            words.Count(v => !v.IsSuspended && v.Next <= now),
+            words,
+            meanings.Values.Sum(m => m.Count),
+            meanings.Values.Where(m => m.Level > 0).Sum(m => m.Count),
+            meanings.GetValueOrDefault(0)?.Count ?? 0,
+            meanings.GetValueOrDefault(0)?.Available ?? 0,
+            meanings.Values.Sum(m => m.Due),
+            meanings.GetValueOrDefault(5)?.Count ?? 0,
             Enumerable.Range(0, 6)
-                .Select(l => new LevelCount(l, words.Count(v => v.Level == l)))
+                .Select(l => new LevelCount(l, meanings.GetValueOrDefault(l)?.Count ?? 0))
                 .ToArray(),
+            await listening.CountAsync(ct),
+            await listening.CountAsync(a => a.IsCorrect, ct),
             total,
             correct,
             total == 0 ? null : Math.Round(100d * correct / total, 2),

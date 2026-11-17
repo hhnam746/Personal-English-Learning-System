@@ -17,9 +17,11 @@ import { SpeakButton } from '@/components/speak-button'
 import { Button } from '@/components/ui/button'
 import { LoadingState, ErrorState } from '@/components/query-state'
 import { usePracticeStore } from '@/lib/zustand/practice.store'
-import { useVocabularies } from '@/features/vocabularies/hooks/use-vocabularies'
+import { useQuery } from '@tanstack/react-query'
+import progressService from '@/features/progress/services'
 import { useDashboard } from '@/features/dashboard/hooks/use-dashboard'
 import { usePractice } from '@/features/practice/hooks/use-practice'
+import { WordHistory } from '@/features/vocabularies/components/word-history'
 import { QuestionForm } from '@/features/practice/components/question-form'
 export function PracticeWorkspace() {
   const { sessionId: activeSession, setSession } = usePracticeStore()
@@ -31,8 +33,10 @@ export function PracticeWorkspace() {
   const quitButton = useRef<HTMLButtonElement>(null)
   const data = usePractice(id, questions)
   const dashboard = useDashboard(7)
-  const due = useVocabularies({ dueOnly: true, pageSize: 8 }, !id)
-  const fresh = useVocabularies({ level: 0, pageSize: 4 }, !id)
+  const due = useQuery({ queryKey: ['dashboard', 'practice-due'], enabled: !id,
+    queryFn: ({ signal }) => progressService.meanings({ dueOnly: true, pageSize: 8 }, signal) })
+  const fresh = useQuery({ queryKey: ['dashboard', 'practice-fresh'], enabled: !id,
+    queryFn: ({ signal }) => progressService.meanings({ level: 0, suspended: false, pageSize: 4 }, signal) })
   const intro = data.intro
   useEffect(() => {
     if (data.session.data?.status === 'in_progress') setSession(id)
@@ -83,10 +87,10 @@ export function PracticeWorkspace() {
             )}
             <div className="session-facts">
               <span>
-                <strong>{dashboard.data?.dueWords ?? '—'}</strong> từ đến hạn
+                <strong>{dashboard.data?.dueMeanings ?? '—'}</strong> nghĩa đến hạn
               </span>
               <span>
-                <strong>{dashboard.data?.newWords ?? '—'}</strong> từ chưa học
+                <strong>{dashboard.data?.newMeanings ?? '—'}</strong> nghĩa chưa học
               </span>
               <span>
                 <strong>{audio ? 4 : 2}</strong> dạng bài hỗ trợ
@@ -97,7 +101,7 @@ export function PracticeWorkspace() {
                 checked={audio}
                 onCheckedChange={(checked) => setAudio(checked === true)}
               />{' '}
-              Bật câu hỏi nghe khi từ có URL âm thanh
+              Bật câu hỏi nghe khi có âm thanh offline
             </label>
             <Button
               className="btn btn-primary"
@@ -107,7 +111,7 @@ export function PracticeWorkspace() {
                 data.latest.isError ||
                 pending ||
                 !dashboard.data ||
-                dashboard.data.dueWords + dashboard.data.newWords === 0
+                dashboard.data.dueMeanings + dashboard.data.availableNewMeanings === 0
               }
               onClick={() =>
                 data.start.mutate(audio, {
@@ -125,7 +129,7 @@ export function PracticeWorkspace() {
               </span>
             </Button>
             <p className="setup-note">
-              Tối đa 12 từ theo mặc định hiện có của backend. Level và lịch ôn
+              Tối đa 12 nghĩa mỗi phiên. Level và lịch ôn
               chỉ cập nhật khi hoàn thành.
             </p>
             {data.latest.isError && (
@@ -142,7 +146,7 @@ export function PracticeWorkspace() {
             )}
           </section>
           <aside className="session-plan glass-panel">
-            <h3>Từ có thể gặp trong phiên</h3>
+            <h3>Nghĩa có thể gặp trong phiên</h3>
             {due.isError || fresh.isError ? (
               <ErrorState
                 error={due.error || fresh.error}
@@ -159,8 +163,8 @@ export function PracticeWorkspace() {
                   ...due.data.items,
                   ...fresh.data.items.filter((word) => !word.isSuspended)
                 ].map((word) => (
-                  <div key={word.id}>
-                    <span>{word.term}</span>
+                  <div key={word.meaningId}>
+                    <span>{word.term} · {word.meaningVi}</span>
                     <span className={`level-tag level-${word.level}`}>
                       <span />
                       {word.level ? `Level ${word.level}` : 'Chưa học'}
@@ -171,12 +175,12 @@ export function PracticeWorkspace() {
             )}
             <p className="proposal-note">
               <Info className="icon" aria-hidden="true" />
-              Danh sách xem trước. Hệ thống chọn tối đa 12 từ khi bắt đầu.
+              Danh sách xem trước. Hệ thống chọn tối đa 12 nghĩa khi bắt đầu.
             </p>
             {dashboard.data &&
-              dashboard.data.dueWords + dashboard.data.newWords === 0 && (
+              dashboard.data.dueMeanings + dashboard.data.availableNewMeanings === 0 && (
                 <p className="setup-note">
-                  Chưa có từ cần học.{' '}
+                  Chưa có nghĩa cần học.{' '}
                   <Link className="text-link" to="/library">
                     Thêm từ mới
                   </Link>{' '}
@@ -210,11 +214,11 @@ export function PracticeWorkspace() {
               ? 'Đã hoàn thành phiên luyện tập'
               : 'Phiên đã kết thúc'}
           </h2>
-          <p>{session.words.length} từ trong phiên của bạn.</p>
+          <p>{session.words.length} {session.words.some(w => w.isLegacy) ? 'từ' : 'nghĩa'} trong phiên của bạn.</p>
           <div className="result-metrics glass-inset">
             <div>
               <strong>{session.words.length}</strong>
-              <span>từ luyện tập</span>
+              <span>{session.words.some(w => w.isLegacy) ? 'từ luyện tập' : 'nghĩa luyện tập'}</span>
             </div>
             <div>
               <strong>{session.answeredCount}</strong>
@@ -225,7 +229,7 @@ export function PracticeWorkspace() {
                 {data.attempts.data
                   ? (() => {
                       const scored = data.attempts.data.filter(
-                        (a) => a.role === 'assessment'
+                        (a) => a.role === 'assessment' && !a.type.startsWith('listen')
                       )
                       return scored.length
                         ? Math.round(
@@ -237,7 +241,7 @@ export function PracticeWorkspace() {
                     })()
                   : '—'}
               </strong>
-              <span>đúng ở lượt đánh giá</span>
+              <span>đúng ở lượt đánh giá nghĩa</span>
             </div>
           </div>
           {session.status === 'completed' && data.attempts.isPending && (
@@ -252,18 +256,25 @@ export function PracticeWorkspace() {
           <div className="result-changes">
             {session.words.map((w) => {
               const attempts = data.attempts.data?.filter(
-                (a) => a.sessionWordId === w.id && a.role === 'assessment'
+                (a) => a.sessionWordId === w.id && a.role === 'assessment' && !a.type.startsWith('listen')
+              )
+              const listening = data.attempts.data?.filter(
+                (a) => a.sessionWordId === w.id && a.type.startsWith('listen')
               )
               return (
                 <div key={w.id}>
-                  <strong>{w.term}</strong>
+                  <strong>{w.term}{w.meaningVi && ` · ${w.meaningVi}`}</strong>
                   <span>
                     {attempts
                       ? `${attempts.filter((a) => a.isCorrect).length}/${attempts.length} lượt đánh giá đúng`
                       : w.levelAtStart
                         ? `Level ${w.levelAtStart} lúc bắt đầu`
-                        : 'Từ mới'}
+                        : 'Nghĩa mới'}
                   </span>
+                  {!!listening?.length && <span>
+                    {listening.filter(a => a.isCorrect).length}/{listening.length} câu nghe đúng
+                  </span>}
+                  {w.isLegacy && <WordHistory id={w.vocabularyId} />}
                 </div>
               )
             })}
@@ -337,7 +348,7 @@ export function PracticeWorkspace() {
                     </article>
                   ))
                 ) : (
-                  <p>Phiên này chỉ gồm từ đã học. Sẵn sàng ôn lại?</p>
+                  <p>Phiên này chỉ gồm nghĩa đã học. Sẵn sàng ôn lại?</p>
                 )}
               </div>
             )}
@@ -405,7 +416,8 @@ export function PracticeWorkspace() {
           key={q.id}
           question={q}
           ipa={session.words.find((w) => w.id === q.sessionWordId)?.ipa}
-          pending={data.answer.isPending}
+          pending={data.answer.isPending || data.skipAudio.isPending}
+          onSkipAudio={() => data.skipAudio.mutate({ sessionId: id, questionId: q.id })}
           onAnswer={(answer) =>
             data.answer.mutate({ sessionId: id, questionId: q.id, answer })
           }
@@ -427,7 +439,7 @@ export function PracticeWorkspace() {
       >
         <div>
           <h1>Luyện tập</h1>
-          <p className="muted">Ôn từ đến hạn và học từ mới.</p>
+          <p className="muted">Ôn nghĩa đến hạn và học nghĩa mới.</p>
         </div>
       </div>
       {content()}

@@ -29,15 +29,17 @@ export const vocabularySchema = z
     audioUrl: z
       .string()
       .refine(
-        (v) => !v || /^https?:\/\//i.test(v),
-        'URL âm thanh phải bắt đầu bằng http:// hoặc https://'
+        (v) => !v || /^https?:\/\//i.test(v) || /^\/audio\/[a-z0-9_-]+\.(mp3|wav|ogg)$/i.test(v),
+        'Nhập đường dẫn âm thanh nội bộ hoặc URL HTTP(S) cũ'
       )
-      .refine((v) => !v || URL.canParse(v), 'URL không hợp lệ')
+      .refine((v) => !v || URL.canParse(v, 'http://localhost'), 'URL không hợp lệ')
       .max(2048),
     meanings: z
       .array(
         z.object({
           id: z.string().optional(),
+          dictionaryEntryId: z.number().int().nullish(),
+          dictionaryDefinitionId: z.number().int().nullish(),
           meaningVi: z
             .string()
             .trim()
@@ -53,7 +55,8 @@ export const vocabularySchema = z
                   sentenceEn: z.string().trim().max(5000),
                   sentenceVi: optionalText(5000),
                   clozeSentenceEn: optionalText(5000),
-                  clozeAnswer: optionalText(255)
+                  clozeAnswer: optionalText(255),
+                  clozeConfirmed: z.boolean().optional()
                 })
                 .superRefine((v, ctx) => {
                   if (

@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import {
+  Controller,
   FormProvider,
   useFieldArray,
   useForm,
@@ -8,9 +9,17 @@ import {
 } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { BookOpen, Check } from 'lucide-react'
-import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import {
   Field,
@@ -25,20 +34,14 @@ import {
 } from '../validations'
 import type { Vocabulary, VocabularyInput } from '../types'
 
-const partsOfSpeech = [
-  ['noun', 'Danh từ'],
-  ['verb', 'Động từ'],
-  ['adjective', 'Tính từ'],
-  ['adverb', 'Trạng từ'],
-  ['phrase', 'Cụm từ'],
-  ['other', 'Khác']
-]
+import { partsOfSpeech } from '../part-of-speech'
 
 const emptyExample = {
   sentenceEn: '',
   sentenceVi: '',
   clozeSentenceEn: '',
-  clozeAnswer: ''
+  clozeAnswer: '',
+  clozeConfirmed: false
 }
 
 function TextField({
@@ -47,6 +50,7 @@ function TextField({
   placeholder,
   required,
   multiline,
+  readOnly,
   partOfSpeech
 }: {
   name: FieldPathByValue<VocabularyFormValues, string | undefined>
@@ -54,13 +58,29 @@ function TextField({
   placeholder?: string
   required?: boolean
   multiline?: boolean
+  readOnly?: boolean
   partOfSpeech?: string
 }) {
-  const { register, getFieldState, formState } =
+  const { control, register, getFieldState, formState, getValues, setValue } =
     useFormContext<VocabularyFormValues>()
   const { error } = getFieldState(name, formState)
+  const clearConfirmation = () => {
+    if (name === 'term') {
+      getValues('meanings').forEach((m, i) => m.examples.forEach((_, j) =>
+        setValue(`meanings.${i}.examples.${j}.clozeConfirmed`, false)))
+    }
+    const meaning = /^meanings\.(\d+)\.meaningVi$/.exec(name)
+    if (meaning) {
+      const i = Number(meaning[1])
+      getValues(`meanings.${i}.examples`).forEach((_, j) =>
+        setValue(`meanings.${i}.examples.${j}.clozeConfirmed`, false))
+    }
+    const example = /^meanings\.(\d+)\.examples\.(\d+)\.(sentenceEn|clozeSentenceEn|clozeAnswer)$/.exec(name)
+    if (example) setValue(`meanings.${Number(example[1])}.examples.${Number(example[2])}.clozeConfirmed`, false)
+  }
   const props = {
-    ...register(name),
+    ...register(name, { onChange: clearConfirmation }),
+    readOnly,
     className: 'glass-control',
     id: name,
     placeholder,
@@ -74,20 +94,45 @@ function TextField({
         {label}
       </FieldLabel>
       {partOfSpeech !== undefined ? (
-        <NativeSelect {...props}>
-          <NativeSelectOption value="">Không bắt buộc</NativeSelectOption>
-          {partsOfSpeech.map(([value, text]) => (
-            <NativeSelectOption key={value} value={value}>
-              {text}
-            </NativeSelectOption>
-          ))}
-          {partOfSpeech &&
-            !partsOfSpeech.some(([value]) => value === partOfSpeech) && (
-              <NativeSelectOption value={partOfSpeech}>
-                {partOfSpeech}
-              </NativeSelectOption>
-            )}
-        </NativeSelect>
+        <Controller
+          name={name}
+          control={control}
+          render={({ field }) => (
+            <Select
+              value={`pos:${field.value ?? ''}`}
+              onValueChange={(value) => field.onChange(value.slice(4))}
+            >
+              <SelectTrigger
+                className="glass-control"
+                id={name}
+                ref={field.ref}
+                onBlur={field.onBlur}
+                aria-invalid={props['aria-invalid']}
+                aria-describedby={props['aria-describedby']}
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent position="popper" align="start">
+                <SelectGroup>
+                  <SelectItem value="pos:">Không bắt buộc</SelectItem>
+                  {partsOfSpeech.map(([value, text]) => (
+                    <SelectItem key={value} value={`pos:${value}`}>
+                      {text}
+                    </SelectItem>
+                  ))}
+                  {partOfSpeech &&
+                    !partsOfSpeech.some(
+                      ([value]) => value === partOfSpeech
+                    ) && (
+                      <SelectItem value={`pos:${partOfSpeech}`}>
+                        {partOfSpeech}
+                      </SelectItem>
+                    )}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          )}
+        />
       ) : multiline ? (
         <Textarea {...props} rows={2} />
       ) : (
@@ -136,6 +181,16 @@ function Examples({ index }: { index: number }) {
               name={`meanings.${index}.examples.${i}.clozeAnswer`}
               label="Đáp án điền từ"
             />
+            <Controller
+              control={control}
+              name={`meanings.${index}.examples.${i}.clozeConfirmed`}
+              render={({ field }) => (
+                <label className="flex items-start gap-2">
+                  <Checkbox checked={!!field.value} onCheckedChange={(value) => field.onChange(value === true)} />
+                  <span>Dùng để điền từ nếu câu đúng nghĩa và có một đáp án rõ ràng</span>
+                </label>
+              )}
+            />
             <Button
               type="button"
               variant="ghost"
@@ -163,23 +218,26 @@ function Examples({ index }: { index: number }) {
 }
 export function VocabularyForm({
   word,
+  initial,
   pending,
   onSave,
   onDirtyChange
 }: {
   word?: Vocabulary
+  initial?: VocabularyInput
   pending: boolean
   onSave: (data: VocabularyInput) => Promise<void>
   onDirtyChange: (dirty: boolean) => void
 }) {
+  const source = word ?? initial
   const advanced = useRef<HTMLDetailsElement>(null)
   const methods = useForm<VocabularyFormValues>({
     resolver: zodResolver(vocabularySchema),
     defaultValues: {
-      term: word?.term || '',
-      ipa: word?.ipa || '',
-      audioUrl: word?.audioUrl || '',
-      meanings: word?.meanings.map((m, i) => ({
+      term: source?.term || '',
+      ipa: source?.ipa || '',
+      audioUrl: source?.audioUrl || '',
+      meanings: source?.meanings.length ? source.meanings.map((m, i) => ({
         ...m,
         partOfSpeech: m.partOfSpeech || '',
         ipaOverride: m.ipaOverride || '',
@@ -192,7 +250,7 @@ export function VocabularyForm({
                 clozeSentenceEn: e.clozeSentenceEn || '',
                 clozeAnswer: e.clozeAnswer || ''
               }))
-      })) || [
+      })) : [
         {
           meaningVi: '',
           partOfSpeech: '',
@@ -203,9 +261,9 @@ export function VocabularyForm({
     }
   })
   useEffect(() => {
-    onDirtyChange(methods.formState.isDirty)
+    onDirtyChange(methods.formState.isDirty || !!initial?.meanings.length)
     return () => onDirtyChange(false)
-  }, [methods.formState.isDirty, onDirtyChange])
+  }, [methods.formState.isDirty, onDirtyChange, initial])
   const { fields, append, remove } = useFieldArray({
     control: methods.control,
     name: 'meanings',
@@ -272,6 +330,7 @@ export function VocabularyForm({
               name="term"
               label="Từ / Cụm từ tiếng Anh"
               placeholder="Ví dụ: resilient"
+              readOnly={!!initial?.meanings.length}
               required
             />
             <TextField
@@ -300,8 +359,8 @@ export function VocabularyForm({
             />
           </div>
           <p className="field-help">
-            Dùng nguyên từ đã lưu trong câu để có thể luyện điền từ. Phát âm sử
-            dụng giọng đọc trình duyệt khi chưa có URL âm thanh.
+            Để luyện điền từ, dùng nguyên từ đã lưu và xác nhận ví dụ trong mục
+            Thông tin bổ sung.
           </p>
           <details ref={advanced} className="word-form-advanced">
             <summary>Thông tin bổ sung</summary>

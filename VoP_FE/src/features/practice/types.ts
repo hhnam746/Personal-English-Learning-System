@@ -8,6 +8,9 @@ export interface Session {
   words: {
     id: string
     vocabularyId: string
+  meaningId?: string | null
+  meaningVi?: string | null
+  isLegacy?: boolean
     source: string
     levelAtStart: number
     term: string

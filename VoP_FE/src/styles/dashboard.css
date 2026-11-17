@@ -36,12 +36,13 @@
 }
 .app-shell[data-view='dashboard'] .vocabulary-summary {
   margin-top: 22px;
+  min-height: 0;
 }
 .app-shell[data-view='dashboard']
   .organic-blob--summary
   > .organic-blob__content {
-  padding: 55px 12% 52px 16%;
-  min-height: 320px;
+  padding: 38px 12% 34px 16%;
+  min-height: 272px;
 }
 .app-shell[data-view='dashboard'] .organic-blob--summary h2 {
   font-size: 20px;
@@ -224,13 +225,16 @@
     inset 0 1px 1px rgba(255, 255, 255, 0.65),
     0 10px 26px rgba(125, 94, 80, 0.035);
 }
-.app-shell[data-view='dashboard'] .dashboard-activity .panel-top select {
+.app-shell[data-view='dashboard']
+  .dashboard-activity
+  .panel-top
+  [data-slot='select-trigger'] {
   background: rgba(255, 255, 255, 0.23);
   border-color: rgba(255, 255, 255, 0.5);
   font-size: 14px;
   border-radius: 999px;
   max-width: 180px;
-  padding: 6px 28px 6px 14px;
+  padding: 6px 14px;
 }
 .app-shell[data-view='dashboard'] .dashboard-activity {
   display: flex;
@@ -414,7 +418,7 @@ html[data-theme='dark'] .app-shell[data-view='dashboard'] .word-chip {
   .app-shell[data-view='dashboard']
     .organic-blob--summary
     > .organic-blob__content {
-    min-height: 310px;
+    min-height: 262px;
     padding-left: 15%;
     padding-right: 12%;
   }
@@ -459,9 +463,9 @@ html[data-theme='dark'] .app-shell[data-view='dashboard'] .word-chip {
   .app-shell[data-view='dashboard']
     .organic-blob--summary
     > .organic-blob__content {
-    min-height: 306px;
-    padding-top: 44px;
-    padding-bottom: 44px;
+    min-height: 254px;
+    padding-top: 34px;
+    padding-bottom: 34px;
   }
   .app-shell[data-view='dashboard'] .organic-blob--summary .vocab-total strong {
     font-size: 82px;
@@ -517,7 +521,10 @@ html[data-theme='dark'] .app-shell[data-view='dashboard'] .word-chip {
     font-size: 15px;
     gap: 7px;
   }
-  .app-shell[data-view='dashboard'] .dashboard-activity .panel-top select {
+  .app-shell[data-view='dashboard']
+    .dashboard-activity
+    .panel-top
+    [data-slot='select-trigger'] {
     font-size: 10px;
     max-width: 126px;
   }

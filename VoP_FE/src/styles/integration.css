@@ -2,6 +2,9 @@
 .memory-column {
   text-decoration: none;
 }
+[data-sonner-toast] [data-title].toast-success-title {
+  color: var(--green);
+}
 /* Modal tasks need a solid reading layer, separate from page glass. */
 :root {
   --dialog-surface: #faf8f6;
@@ -22,6 +25,12 @@ html[data-theme='dark'] {
   -webkit-backdrop-filter: blur(6px);
   backdrop-filter: blur(6px);
 }
+[data-slot='alert-dialog-overlay'] {
+  z-index: 51;
+}
+[data-slot='alert-dialog-content'] {
+  z-index: 52;
+}
 .vop-dialog[data-slot] {
   width: min(680px, calc(100vw - 32px));
   max-width: 680px;
@@ -37,12 +46,25 @@ html[data-theme='dark'] {
 .vop-dialog [data-slot='dialog-close'] {
   color: var(--ink);
 }
+.vop-dialog[data-slot='alert-dialog-content'] {
+  max-width: 512px;
+}
 .word-form-dialog.vop-dialog[data-slot] {
   display: block;
   width: min(570px, calc(100% - 28px));
   max-width: none;
+  overflow: hidden;
+  padding: 0;
   border-radius: 32px;
   border-color: var(--glass-edge);
+}
+.word-form-scroll {
+  max-height: inherit;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 32px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--faint) transparent;
 }
 .word-form-dialog .modal-header [data-slot='dialog-title'] {
   padding: 0;
@@ -88,10 +110,7 @@ html[data-theme='dark'] {
   content: '*' / '';
   color: var(--accent-ink);
 }
-.vocabulary-form [data-slot='native-select-wrapper'] {
-  width: 100%;
-}
-.vocabulary-form .glass-control {
+.word-form-dialog .glass-control {
   width: 100%;
   min-height: 52px;
   height: auto;
@@ -102,12 +121,11 @@ html[data-theme='dark'] {
   color: var(--ink);
   font-size: 0.9375rem;
 }
-.vocabulary-form .glass-control[data-slot='native-select'] {
-  padding-right: 23px;
-  text-overflow: ellipsis;
+.word-form-dialog input[role='combobox'].glass-control:focus {
+  outline: none;
 }
-.vocabulary-form [data-slot='native-select-icon'] {
-  right: 6px;
+.word-form-dialog input[role='combobox'].glass-control:focus-visible {
+  box-shadow: inset 0 0 0 1px var(--muted);
 }
 .vocabulary-form textarea.glass-control {
   min-height: 80px;
@@ -625,15 +643,23 @@ body {
 }
 @supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
   @media (prefers-reduced-transparency: no-preference) and (prefers-contrast: no-preference) {
-    .word-form-dialog.vop-dialog[data-slot] {
-      background: var(--glass-dialog);
+    .vop-dialog[data-slot]:where(.word-form-dialog, [data-slot='alert-dialog-content']) {
+      background:
+        radial-gradient(ellipse at 100% 0%, var(--accent-tint), transparent 65%),
+        var(--glass-dialog);
       -webkit-backdrop-filter: blur(18px) saturate(1.04);
       backdrop-filter: blur(18px) saturate(1.04);
       box-shadow:
         inset 0 1px 1px var(--glass-reflection),
         0 10px 28px var(--glass-shadow);
     }
-    .vocabulary-form .glass-control,
+    .vop-dialog[data-slot='alert-dialog-content'] {
+      border-color: var(--glass-edge);
+    }
+    .vop-dialog[data-slot='alert-dialog-content']:not(.glass-panel--dialog) {
+      background-color: var(--dialog-surface);
+    }
+    .word-form-dialog .glass-control,
     .word-form-dialog .modal-header .icon-button {
       border-color: var(--glass-edge-soft);
     }
@@ -689,6 +715,9 @@ body {
 }
 
 @media (max-width: 600px) {
+  .word-form-scroll {
+    padding: 24px;
+  }
   .word-form-dialog.vop-dialog[data-slot] {
     max-height: calc(100dvh - 28px);
     border-radius: 28px;
@@ -699,7 +728,7 @@ body {
   .word-form-main .form-pair {
     grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
   }
-  .vocabulary-form .glass-control {
+  .word-form-dialog .glass-control {
     font-size: max(16px, 1rem);
     padding-inline: 12px;
   }
@@ -711,6 +740,13 @@ body {
   }
 }
 
+:is(.top-search, .search-input) input:focus {
+  outline: none;
+  box-shadow: none;
+}
+.app-shell :is(.top-search, .search-input):focus-within {
+  border-color: var(--muted);
+}
 .search-input [data-slot='input'] {
   min-width: 0;
   height: auto;
@@ -732,14 +768,26 @@ body {
   }
 }
 
-.flashcard-level-trigger.glass-control {
+[data-slot='select-trigger'].glass-control {
+  min-width: 0;
+  max-width: 100%;
   min-height: 44px;
   padding-inline: 12px;
   border-radius: 16px;
   flex-shrink: 0;
 }
-.flashcard-level-menu[data-slot='select-content'] {
+.vocabulary-form [data-slot='select-trigger'].glass-control {
+  width: 100%;
+  text-align: left;
+}
+[data-slot='select-trigger'] > [data-slot='select-value'] {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+[data-slot='select-content'] {
   min-width: max(150px, var(--radix-select-trigger-width, 0px));
+  max-width: var(--radix-select-content-available-width);
   border: 1px solid var(--glass-edge);
   border-radius: 18px;
   color: var(--ink);
@@ -748,29 +796,41 @@ body {
     inset 0 1px 1px var(--glass-reflection),
     0 10px 24px var(--glass-shadow);
 }
-.flashcard-level-menu [data-slot='select-item'] {
+:is([data-slot='select-item'], [data-slot='combobox-item']) {
   padding-block: 8px;
   border-radius: 12px;
 }
-.flashcard-level-menu [data-slot='select-item'][data-state='checked'],
-.flashcard-level-menu [data-slot='select-item'][data-highlighted] {
+.glass-inset[data-selected='true'] {
   background: var(--accent-tint);
+  border-color: color-mix(in srgb, var(--accent) 42%, var(--glass-edge-soft));
+}
+[data-slot='select-item'][data-state='checked'] {
   color: var(--accent-ink);
 }
-.flashcard-level-menu [data-slot='select-item'][data-highlighted] {
+@media (hover: hover) {
+  [data-slot='select-item']:hover:not([data-disabled]) {
+    background-color: var(--accent-tint);
+    color: var(--accent-ink);
+  }
+  [data-slot='select-content']:not(:has([data-slot='select-item']:hover))
+    [data-slot='item-highlight'] {
+    visibility: hidden;
+  }
+}
+[data-slot='select-item']:focus-visible {
   outline: 1px solid var(--accent);
   outline-offset: -1px;
 }
-.flashcard-level-menu [data-slot='select-item-indicator'] svg {
+[data-slot='select-item-indicator'] svg {
   color: currentColor;
 }
 @media (pointer: coarse), (max-width: 767px) {
-  .flashcard-level-menu [data-slot='select-item'] {
+  [data-slot='select-item'] {
     min-height: 44px;
   }
 }
 @media (max-width: 600px) {
-  .flashcard-level-trigger.glass-control {
+  [data-view='flashcards'] [data-slot='select-trigger'].glass-control {
     width: min(136px, 42vw);
   }
 }

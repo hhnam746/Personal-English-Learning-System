@@ -9,14 +9,15 @@ namespace VoP.Service.Learning;
 
 public sealed class Service(AppDbContext db) : IService
 {
-    private IQueryable<Vocabulary> Query => db.Vocabularies.Include(v => v.LearningProgress).Where(v => v.DeletedAt == null);
-    private static ProgressResponse Response(Vocabulary v) => new(v.Id,
-        v.Term,
-        v.LearningProgress?.Level ?? 0,
-        v.LearningProgress?.IsSuspended ?? false,
-        v.LearningProgress?.FirstLearnedAt,
-        v.LearningProgress?.LastReviewedAt,
-        v.LearningProgress?.NextReviewAt);
+    private IQueryable<VocabularyMeaning> Query => db.VocabularyMeanings
+        .Include(m => m.Progress)
+        .Include(m => m.Vocabulary).ThenInclude(v => v.LearningProgress)
+        .Where(m => m.DeletedAt == null && m.Vocabulary.DeletedAt == null);
+
+    private static ProgressResponse Response(VocabularyMeaning m) => new(m.VocabularyId,
+        m.Vocabulary.Term, m.Progress?.Level ?? 0, m.Vocabulary.IsSuspended,
+        m.Progress?.FirstLearnedAt, m.Progress?.LastReviewedAt, m.Progress?.NextReviewAt,
+        m.Id, m.MeaningVi);
 
     public async Task<Page<ProgressResponse>> List(int? level, bool dueOnly, bool? suspended, int page, int pageSize, CancellationToken ct)
     {
@@ -24,41 +25,42 @@ public sealed class Service(AppDbContext db) : IService
         Rules.Require(level == null || level is >= 0 and <= 5, "Level must be 0..5.");
         var query = Query.AsNoTracking();
         var now = DateTimeOffset.UtcNow;
-        if (level != null) query = query.Where(v => (v.LearningProgress == null ? 0 : v.LearningProgress.Level) == level);
-        if (dueOnly) query = query
-            .Where(v => v.LearningProgress != null && !v.LearningProgress.IsSuspended && v.LearningProgress.NextReviewAt <= now);
-        if (suspended != null) query = query
-            .Where(v => (v.LearningProgress != null && v.LearningProgress.IsSuspended) == suspended);
+        if (level != null) query = query.Where(m => (m.Progress == null ? 0 : m.Progress.Level) == level);
+        if (dueOnly) query = query.Where(m => !m.Vocabulary.IsSuspended &&
+            m.Progress != null && m.Progress.Level > 0 && m.Progress.NextReviewAt <= now);
+        if (suspended != null) query = query.Where(m => m.Vocabulary.IsSuspended == suspended);
         var total = await query.CountAsync(ct);
-        var items = await query
-            .OrderBy(v => v.LearningProgress == null ? null : v.LearningProgress.NextReviewAt)
-            .ThenBy(v => v.Id)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .ToListAsync(ct);
+        var items = await query.OrderBy(m => m.Progress == null ? null : m.Progress.NextReviewAt)
+            .ThenBy(m => m.Id).Skip((page - 1) * pageSize).Take(pageSize).ToListAsync(ct);
         return new(items.Select(Response).ToArray(), page, pageSize, total);
     }
 
-    public async Task<ProgressResponse> Get(Guid id, CancellationToken ct) =>
-        Response(await Query.SingleOrDefaultAsync(v => v.Id == id, ct)
-            ?? throw new ApiException(404, "Vocabulary not found."));
+    public async Task<WordProgressResponse> Get(Guid id, CancellationToken ct)
+    {
+        var v = await db.Vocabularies.AsNoTracking()
+            .Include(v => v.LearningProgress)
+            .Include(v => v.VocabularyMeanings).ThenInclude(m => m.Progress)
+            .SingleOrDefaultAsync(v => v.Id == id, ct)
+            ?? throw new ApiException(404, "Vocabulary not found.");
+        var meanings = v.VocabularyMeanings.Where(m => m.DeletedAt == null)
+            .OrderBy(m => m.DisplayOrder).ToArray();
+        var legacy = v.LearningProgress;
+        return new(v.Id, v.Term, v.IsSuspended, meanings.Select(Response).ToArray(),
+            legacy == null ? null : new LegacyProgressResponse(legacy.Level, legacy.FirstLearnedAt,
+                legacy.LastReviewedAt, legacy.NextReviewAt, legacy.MappedMeaningId));
+    }
 
-    public async Task<ProgressResponse> Suspend(Guid id, bool suspended, CancellationToken ct)
+    public async Task<WordProgressResponse> Suspend(Guid id, bool suspended, CancellationToken ct)
     {
         await using var tx = await LearningMutation.Lock(db, ct);
-        var v = await Query.SingleOrDefaultAsync(v => v.Id == id, ct) ?? throw new ApiException(404, "Vocabulary not found.");
+        var v = await db.Vocabularies.SingleOrDefaultAsync(v => v.Id == id && v.DeletedAt == null, ct)
+            ?? throw new ApiException(404, "Vocabulary not found.");
         Rules.Require(!await db.SessionWords.AnyAsync(w => w.VocabularyId == id && w.Session.Status == PracticeSessionStatus.InProgress, ct),
-            "Finish or abandon active session before changing suspension.",
-            409);
-        v.LearningProgress ??= new LearningProgress
-        {
-            Vocabulary = v
-        };
-        v.LearningProgress.IsSuspended = suspended;
-        v.LearningProgress.UpdatedAt = DateTimeOffset.UtcNow;
+            "Finish or abandon active session before changing suspension.", 409);
+        v.IsSuspended = suspended;
         await db.SaveChangesAsync(ct);
         await tx.CommitAsync(ct);
-        return Response(v);
+        return await Get(id, ct);
     }
 
     public async Task<Page<EvaluationResponse>> History(Guid id, int page, int pageSize, CancellationToken ct)
@@ -77,7 +79,9 @@ public sealed class Service(AppDbContext db) : IService
             e.LevelBefore,
             e.LevelAfter,
             e.NextReviewAt,
-            e.EvaluatedAt))
+            e.EvaluatedAt,
+            e.SessionWord.MeaningId,
+            e.SessionWord.IsLegacy))
             .ToArrayAsync(ct),
             page,
             pageSize,

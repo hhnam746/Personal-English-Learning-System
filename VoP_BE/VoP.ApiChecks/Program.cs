@@ -40,6 +40,7 @@ start.ArgumentList.Add(Path.Combine(root, "VoP.Api/bin/Debug/net8.0/VoP.Api.dll"
 start.ArgumentList.Add("--urls");
 start.ArgumentList.Add($"http://127.0.0.1:{port}");
 start.Environment["ConnectionStrings__DefaultConnection"] = cs.ConnectionString;
+start.Environment["OfflinePronunciation__Enabled"] = "false";
 start.Environment["ASPNETCORE_ENVIRONMENT"] = "Development";
 using var host = Process.Start(start) ?? throw new Exception("Cannot start API.");
 host.OutputDataReceived += (_, e) =>
@@ -75,7 +76,7 @@ object Vocab(string term) => new
 {
     term,
     ipa = "/test/",
-    audioUrl = "https://example.com/" + term + ".mp3",
+    audioUrl = "/audio/" + term.Trim() + ".mp3",
     meanings = new[]
 {
  new
@@ -84,7 +85,7 @@ object Vocab(string term) => new
 {
  new
 {
- sentenceEn = "This is " + term + ".", clozeSentenceEn = "This is ________.", clozeAnswer = term
+ sentenceEn = "She picked a fresh " + term + ".", clozeConfirmed = true
 }
 }
 }
@@ -92,7 +93,7 @@ object Vocab(string term) => new
 };
 async Task<string> Start(string[] ids, bool extra = false) => Id(await Send(HttpMethod.Post, "/api/practice-sessions", new { vocabularyIds = ids, extraPractice = extra }, 201));
 async Task<JsonObject> Next(string session) => await Send(HttpMethod.Get, $"/api/practice-sessions/{session}/next-question");
-async Task AnswerAll(string session, bool failFirst = false)
+async Task AnswerAll(string session, bool failFirst = false, bool failListening = false)
 {
     var failed = false;
     for (var i = 0; i < 100; i++)
@@ -108,7 +109,7 @@ async Task AnswerAll(string session, bool failFirst = false)
         var plan = JsonSerializer.Deserialize<VoP.Service.Practice.WordPlan>(word.QuestionPlan!)!;
         var expected = plan.Questions.Single(p => p.Id == qid).Expected;
         var answer = expected;
-        if (failFirst && !failed)
+        if ((failFirst && !failed) || (failListening && q["type"]!.GetValue<string>().StartsWith("listen")))
         {
             answer = q["options"]!.AsArray().Select(n => n!.GetValue<string>()).FirstOrDefault(x => x != expected) ?? "wrong";
             failed = true;
@@ -158,7 +159,7 @@ try
     var q = await Next(session);
     Check(!q.ContainsKey("expected") && !q.ToJsonString().Contains("CorrectAnswer"), "Pending question excludes expected answer");
     await Send(HttpMethod.Post, $"/api/practice-sessions/{session}/answers", new { questionId = Guid.NewGuid(), answer = "wrong" }, 409);
-    await AnswerAll(session, true);
+    await AnswerAll(session, true, failListening: true);
     await Send(HttpMethod.Post, $"/api/practice-sessions/{session}/complete");
     await Send(HttpMethod.Post, $"/api/practice-sessions/{session}/complete");
     db.ChangeTracker.Clear();
@@ -167,8 +168,9 @@ try
     Check(evaluations.Count(e => e.Outcome == ReviewOutcome.Failed && e.LevelAfter == 0) == 1, "Failed new word remains level 0 despite reinforcement");
     Check(await db.ExerciseAttempts.AnyAsync(a => a.Role == AttemptRole.Reinforcement), "Wrong assessment creates separate reinforcement");
     Check((await db.ExerciseAttempts.Select(a => a.ExerciseType).Distinct().ToListAsync()).Count == 4, "All four exercise types server graded");
-    var learned = await db.LearningProgress.FirstAsync(p => p.Level == 1);
-    var learnedId = learned.VocabularyId.ToString();
+    var learned = await db.MeaningProgress.FirstAsync(p => p.Level == 1);
+    var learnedMeaning = await db.VocabularyMeanings.Include(m => m.Vocabulary).SingleAsync(m => m.Id == learned.MeaningId);
+    var learnedId = learnedMeaning.VocabularyId.ToString();
     var oldNext = learned.NextReviewAt;
     var learnedPage = await Send(HttpMethod.Get, "/api/vocabularies?level=1&sort=level");
     Check(learnedPage["totalItems"]!.GetValue<int>() == 3 && learnedPage["items"]!.AsArray().All(v => v!["level"]!.GetValue<int>() == 1), "Vocabulary response carries accurate learning state");
@@ -179,11 +181,11 @@ try
     await db.SaveChangesAsync();
     var dueList = await Send(HttpMethod.Get, "/api/vocabularies?dueOnly=true&level=1&sort=alpha");
     Check(dueList["totalItems"]!.GetValue<int>() == 1 && Id(dueList["items"]![0]!.AsObject()) == learnedId, "Due and level filters combine before count/paging");
-    learned.IsSuspended = true;
+    learnedMeaning.Vocabulary.IsSuspended = true;
     await db.SaveChangesAsync();
     var suspendedDue = await Send(HttpMethod.Get, "/api/vocabularies?dueOnly=true");
     Check(suspendedDue["totalItems"]!.GetValue<int>() == 0, "Due filter excludes suspended vocabulary");
-    learned.IsSuspended = false;
+    learnedMeaning.Vocabulary.IsSuspended = false;
     learned.NextReviewAt = oldNext;
     await db.SaveChangesAsync();
     await Send(HttpMethod.Post, $"/api/flashcards/{learnedId}/reviews", new { }, 400);
@@ -194,7 +196,7 @@ try
     await Send(HttpMethod.Patch, $"/api/learning-progress/{learnedId}/suspension", new { }, 400);
     var card = await Send(HttpMethod.Post, $"/api/flashcards/{learnedId}/reviews", new { rating = "forgotten" }, 201);
     db.ChangeTracker.Clear();
-    Check((await db.LearningProgress.SingleAsync(p => p.VocabularyId == learned.VocabularyId)).NextReviewAt == oldNext, "Flashcards do not mutate SRS");
+    Check((await db.MeaningProgress.SingleAsync(p => p.MeaningId == learned.MeaningId)).NextReviewAt == oldNext, "Flashcards do not mutate SRS");
     await Send(HttpMethod.Post, $"/api/flashcards/{learnedId}/reviews", new { meaningId = words.First(w => Id(w) != learnedId)["meanings"]![0]!["id"]!.GetValue<string>(), rating = "remembered" }, 400);
     await Send(HttpMethod.Post, "/api/practice-sessions", new { vocabularyIds = new[] { learnedId } }, 409);
     var extra = await Start(new[] { learnedId }, true);
@@ -207,9 +209,9 @@ try
     cardReview.ReviewedAt = new DateTimeOffset(previousUtcDay.AddHours(23).AddMinutes(30), TimeSpan.Zero);
     await db.SaveChangesAsync();
     var dashboard = await Send(HttpMethod.Get, "/api/dashboard?days=7");
-    var assessmentTotal = await db.ExerciseAttempts.CountAsync(a => a.Role == AttemptRole.Assessment);
-    var assessmentCorrect = await db.ExerciseAttempts.CountAsync(a => a.Role == AttemptRole.Assessment && a.IsCorrect);
-    Check(dashboard["totalWords"]!.GetValue<int>() == 4 && dashboard["learnedWords"]!.GetValue<int>() == 3, "Dashboard vocabulary/level totals derive from learning records");
+    var assessmentTotal = await db.ExerciseAttempts.CountAsync(a => a.Role == AttemptRole.Assessment && (a.ExerciseType == ExerciseType.MeaningMcq || a.ExerciseType == ExerciseType.FillBlank));
+    var assessmentCorrect = await db.ExerciseAttempts.CountAsync(a => a.Role == AttemptRole.Assessment && a.IsCorrect && (a.ExerciseType == ExerciseType.MeaningMcq || a.ExerciseType == ExerciseType.FillBlank));
+    Check(dashboard["totalWords"]!.GetValue<int>() == 4 && dashboard["learnedMeanings"]!.GetValue<int>() == 3, "Dashboard vocabulary/level totals derive from learning records");
     Check(dashboard["assessmentAnswers"]!.GetValue<int>() == assessmentTotal && dashboard["correctAssessments"]!.GetValue<int>() == assessmentCorrect, "Dashboard accuracy excludes reinforcement and flashcards");
     Check(Math.Abs(dashboard["accuracyPercent"]!.GetValue<double>() - Math.Round(100d * assessmentCorrect / assessmentTotal, 2)) < 0.001, "Dashboard correct assessment percentage");
     var activity = dashboard["activity"]!.AsArray();
@@ -229,11 +231,12 @@ try
     await Send(HttpMethod.Get, "/api/flashcards/reviews");
     await Send(HttpMethod.Get, $"/api/learning-progress/{learnedId}/evaluations");
     await Send(HttpMethod.Patch, $"/api/learning-progress/{learnedId}/suspension", new { isSuspended = true });
-    await Send(HttpMethod.Post, "/api/practice-sessions", new { vocabularyIds = new[] { learnedId }, extraPractice = true }, 400);
+    await Send(HttpMethod.Post, "/api/practice-sessions", new { vocabularyIds = new[] { learnedId }, extraPractice = true }, 409);
     await Send(HttpMethod.Patch, $"/api/learning-progress/{learnedId}/suspension", new { isSuspended = false });
     var snapshot = await Start(new[] { learnedId }, true);
     var beforeQ = await Next(snapshot);
     var body = JsonSerializer.SerializeToNode(Vocab("edited"))!.AsObject();
+    body["meanings"]![0]!["id"] = learned.MeaningId.ToString();
     body["meanings"]![0]!["meaningVi"] = "changed meaning";
     await Send(HttpMethod.Put, $"/api/vocabularies/{learnedId}", body);
     var afterQ = await Next(snapshot);
@@ -253,7 +256,7 @@ try
     foreach (var scenario in new[] { (Level: (short)2, Fail: true, After: (short)1, Minutes: 10d), (Level: (short)1, Fail: false, After: (short)2, Minutes: 360d), (Level: (short)5, Fail: false, After: (short)5, Minutes: 10080d), (Level: (short)5, Fail: false, After: (short)5, Minutes: 20160d) })
     {
         db.ChangeTracker.Clear();
-        var p = await db.LearningProgress.SingleAsync(p => p.VocabularyId == learned.VocabularyId);
+        var p = await db.MeaningProgress.SingleAsync(p => p.MeaningId == learned.MeaningId);
         p.Level = scenario.Level;
         p.NextReviewAt = DateTimeOffset.UtcNow.AddMinutes(-1);
         await db.SaveChangesAsync();
@@ -263,7 +266,7 @@ try
         Check(done.All(r => r.IsSuccessStatusCode), "Concurrent complete is idempotent");
         foreach (var r in done) r.Dispose();
         db.ChangeTracker.Clear();
-        p = await db.LearningProgress.SingleAsync(p => p.VocabularyId == learned.VocabularyId);
+        p = await db.MeaningProgress.SingleAsync(p => p.MeaningId == learned.MeaningId);
         Check(p.Level == scenario.After && Math.Abs((p.NextReviewAt!.Value - p.LastReviewedAt!.Value).TotalMinutes - scenario.Minutes) < 0.1, $"SRS {scenario.Level} => {scenario.After}, failure={scenario.Fail}, delay={scenario.Minutes}min");
         Check(await db.ReviewEvaluations.CountAsync(e => e.SessionWord.SessionId == Guid.Parse(reviewSession)) == 1, "Concurrent completion has one evaluation");
     }
@@ -285,7 +288,97 @@ try
     var autoPlans = await db.SessionWords.Where(w=>w.SessionId==autoSessionId).Select(w=>w.QuestionPlan).ToListAsync();
     Check(autoPlans.SelectMany(p=>JsonSerializer.Deserialize<VoP.Service.Practice.WordPlan>(p!)!.Questions).All(q=>q.Type is not ExerciseType.ListenChoose and not ExerciseType.ListenType),"Audio-disabled questions never require listening");
     await Send(HttpMethod.Post,$"/api/practice-sessions/{Id(autoSession)}/abandon");
+    var mult = await Send(HttpMethod.Post, "/api/vocabularies", new
+    {
+        term = "separate",
+        meanings = new[] { new { meaningVi = "tách ra" }, new { meaningVi = "riêng biệt" } }
+    }, 201);
+    var multId = Id(mult);
+    var firstMeaning = mult["meanings"]![0]!["id"]!.GetValue<string>();
+    var secondMeaning = mult["meanings"]![1]!["id"]!.GetValue<string>();
+    var separate = await Send(HttpMethod.Post, "/api/practice-sessions", new { meaningIds = new[] { firstMeaning }, audioEnabled = false }, 201);
+    await AnswerAll(Id(separate));
+    await Send(HttpMethod.Post, $"/api/practice-sessions/{Id(separate)}/complete");
+    var wordProgress = await Send(HttpMethod.Get, $"/api/learning-progress/{multId}");
+    Check(wordProgress["meanings"]![0]!["level"]!.GetValue<int>() == 1 &&
+        wordProgress["meanings"]![1]!["level"]!.GetValue<int>() == 0, "Learning one meaning leaves its sibling at Level 0");
+    var sibling = await Send(HttpMethod.Post, "/api/practice-sessions", new { meaningIds = new[] { secondMeaning }, audioEnabled = false }, 201);
+    await AnswerAll(Id(sibling), true);
+    await Send(HttpMethod.Post, $"/api/practice-sessions/{Id(sibling)}/complete");
+    wordProgress = await Send(HttpMethod.Get, $"/api/learning-progress/{multId}");
+    Check(wordProgress["meanings"]![0]!["level"]!.GetValue<int>() == 1 &&
+        wordProgress["meanings"]![1]!["level"]!.GetValue<int>() == 0, "Wrong sibling answer leaves the learned meaning at its existing Level");
+    Check(await db.ExerciseAttempts.AnyAsync(a => a.ExerciseType == ExerciseType.ListenChoose && !a.IsCorrect && a.MeaningId == null),
+        "Listening failures are preserved without a meaning association");
     Check(Rules.Normalize("  APPLE’s! ") == "apple's", "Answer normalization NFKC/apostrophe/punctuation");
+    Check(Cloze.FromSentence("run", "We run in the park every day.")?.Answer == "run", "Cloze replaces the exact occurrence");
+    Check(Cloze.FromSentence("run", "We run and run every day.") == null, "Cloze rejects repeated targets");
+    Check(Cloze.FromSentence("run", "We have runners in the park.") == null, "Cloze rejects a partial word match");
+    Check(Cloze.FromSentence("run", "Run on a badly truncated") == null, "Cloze rejects an incomplete sentence");
+    if (Environment.GetEnvironmentVariable("VOP_TEST_DICTIONARY") is { } dictionary)
+    {
+        await VoP.Service.Dictionary.Import.Run(source, dictionary);
+        var dictionaryCounts = new[] { await db.DictionaryEntries.CountAsync(), await db.DictionarySenses.CountAsync(),
+            await db.DictionaryPronunciations.CountAsync() };
+        await VoP.Service.Dictionary.Import.Run(source, dictionary);
+        Check(dictionaryCounts.SequenceEqual(new[] { await db.DictionaryEntries.CountAsync(), await db.DictionarySenses.CountAsync(),
+            await db.DictionaryPronunciations.CountAsync() }), "Repeating the dictionary import keeps all reference counts");
+        var lookup = await new VoP.Service.Dictionary.Service(db).Search(" RESILIENT ", default);
+        Check(lookup[0].Term == "resilient" && lookup[0].Ipa == "/rɪˈzɪliənt/", "Exact dictionary match and source IPA");
+        var entry = await Send(HttpMethod.Get, $"/api/dictionary/entries/{lookup[0].Id}");
+        var senses = entry["meanings"]!.AsArray();
+        Check(senses.Count >= 3, "Source senses remain separate");
+        var save = new { term = "resilient", ipa = lookup[0].Ipa, meanings = senses.Take(2).Select(m => new
+        {
+            meaningVi = m!["meaningVi"]!.GetValue<string>(),
+            dictionaryEntryId = lookup[0].Id,
+            dictionaryDefinitionId = m["definitionId"]!.GetValue<long>()
+        }).ToArray() };
+        var saved = await Send(HttpMethod.Post, "/api/vocabularies/dictionary-meanings", save);
+        var savedId = Id(saved);
+        var senseId = saved["meanings"]![0]!["id"]!.GetValue<string>();
+        var study = await Send(HttpMethod.Post, "/api/practice-sessions", new { meaningIds = new[] { senseId }, audioEnabled = false }, 201);
+        await AnswerAll(Id(study));
+        await Send(HttpMethod.Post, $"/api/practice-sessions/{Id(study)}/complete");
+        var countBeforeAppend = (await Send(HttpMethod.Get, "/api/dashboard"))["totalWords"]!.GetValue<int>();
+        var append = new { term = "RESILIENT", meanings = new[] { new
+        {
+            meaningVi = "bền bỉ (đã sửa)",
+            dictionaryEntryId = lookup[0].Id,
+            dictionaryDefinitionId = senses[2]!["definitionId"]!.GetValue<long>()
+        } } };
+        var responses = await Task.WhenAll(Enumerable.Range(0, 2).Select(_ =>
+            http.PostAsJsonAsync("/api/vocabularies/dictionary-meanings", append)));
+        Check(responses.All(r => r.IsSuccessStatusCode), "Concurrent dictionary append is idempotent");
+        foreach (var response in responses) response.Dispose();
+        var updated = await Send(HttpMethod.Get, $"/api/vocabularies/{savedId}");
+        Check(updated["meanings"]!.AsArray().Count == 3 &&
+            updated["meanings"]![0]!["id"]!.GetValue<string>() == senseId &&
+            updated["meanings"]![0]!["level"]!.GetValue<int>() == 1 &&
+            updated["meanings"]![2]!["level"]!.GetValue<int>() == 0,
+            "Appending a dictionary sense keeps previous IDs and Level, with the new sense at Level 0");
+        var summary = await Send(HttpMethod.Get, "/api/dashboard");
+        Check(summary["totalWords"]!.GetValue<int>() == countBeforeAppend &&
+            summary["totalMeanings"]!.GetValue<int>() == summary["levels"]!.AsArray().Sum(l => l!["count"]!.GetValue<int>()),
+            "Vocabulary counts unique words and the Level distribution sums to total meanings");
+        var manual = await Send(HttpMethod.Post, "/api/vocabularies", new
+        {
+            term = "run",
+            meanings = new[] { new { meaningVi = "nghĩa do người dùng tự nhập" } }
+        }, 201);
+        var run = (await new VoP.Service.Dictionary.Service(db).Search("run", default))[0];
+        var sourceEntry = await Send(HttpMethod.Get, $"/api/dictionary/entries/{run.Id}");
+        var manualId = manual["meanings"]![0]!["id"]!.GetValue<string>();
+        var linked = await Send(HttpMethod.Patch, $"/api/vocabularies/{Id(manual)}/meanings/{manualId}/dictionary-source", new
+        {
+            entryId = run.Id,
+            definitionId = sourceEntry["meanings"]![0]!["definitionId"]!.GetValue<long>()
+        });
+        Check(linked["meanings"]![0]!["id"]!.GetValue<string>() == manualId &&
+            linked["meanings"]![0]!["meaningVi"]!.GetValue<string>() == "nghĩa do người dùng tự nhập",
+            "Explicit dictionary linking preserves the personal meaning and ID");
+
+    }
     Console.WriteLine($"SUCCESS: {checks} checks; isolated database retained: {database}");
     if (args.Contains("--serve"))
     {

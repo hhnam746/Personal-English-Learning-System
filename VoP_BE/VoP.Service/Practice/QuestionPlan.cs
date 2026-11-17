@@ -15,4 +15,4 @@ public record PlannedQuestion(Guid Id,
     string? AudioUrl,
     string[] Options);
 
-public record WordPlan(string Term, string? Ipa, List<PlannedQuestion> Questions);
+public record WordPlan(string Term, string? Ipa, List<PlannedQuestion> Questions, string? MeaningVi = null);

@@ -29,6 +29,102 @@ namespace VoP.Repository.Migrations
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "session_word_source", new[] { "new_word", "due_review", "extra_practice" });
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("VoP.Repository.Entities.DictionaryEntry", b =>
+                {
+                    b.Property<long>("Id")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("NormalizedTerm")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Term")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NormalizedTerm");
+
+                    NpgsqlIndexBuilderExtensions.HasOperators(b.HasIndex("NormalizedTerm"), new[] { "text_pattern_ops" });
+
+                    b.ToTable("dictionary_entries", (string)null);
+                });
+
+            modelBuilder.Entity("VoP.Repository.Entities.DictionaryImport", b =>
+                {
+                    b.Property<string>("Checksum")
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("ImportedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("License")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Statistics")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Checksum");
+
+                    b.ToTable("dictionary_imports", (string)null);
+                });
+
+            modelBuilder.Entity("VoP.Repository.Entities.DictionaryPronunciation", b =>
+                {
+                    b.Property<long>("Id")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("EntryId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Ipa")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Region")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EntryId");
+
+                    b.ToTable("dictionary_pronunciations", (string)null);
+                });
+
+            modelBuilder.Entity("VoP.Repository.Entities.DictionarySense", b =>
+                {
+                    b.Property<long>("EntryId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("DefinitionId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string[]>("Examples")
+                        .IsRequired()
+                        .HasColumnType("text[]");
+
+                    b.Property<string>("MeaningVi")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("PartOfSpeech")
+                        .HasColumnType("text");
+
+                    b.Property<string>("SubPartOfSpeech")
+                        .HasColumnType("text");
+
+                    b.HasKey("EntryId", "DefinitionId");
+
+                    b.ToTable("dictionary_senses", (string)null);
+                });
+
             modelBuilder.Entity("VoP.Repository.Entities.ExerciseAttempt", b =>
                 {
                     b.Property<Guid>("Id")
@@ -151,6 +247,10 @@ namespace VoP.Repository.Migrations
                         .HasDefaultValue((short)0)
                         .HasColumnName("level");
 
+                    b.Property<Guid?>("MappedMeaningId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("mapped_meaning_id");
+
                     b.Property<DateTimeOffset?>("NextReviewAt")
                         .HasColumnType("timestamptz")
                         .HasColumnName("next_review_at");
@@ -172,6 +272,40 @@ namespace VoP.Repository.Migrations
                     b.ToTable("learning_progress", null, t =>
                         {
                             t.HasCheckConstraint("ck_learning_progress_0", "level BETWEEN 0 AND 5");
+                        });
+                });
+
+            modelBuilder.Entity("VoP.Repository.Entities.MeaningProgress", b =>
+                {
+                    b.Property<Guid>("MeaningId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("meaning_id");
+
+                    b.Property<DateTimeOffset?>("FirstLearnedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("first_learned_at");
+
+                    b.Property<DateTimeOffset?>("LastReviewedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_reviewed_at");
+
+                    b.Property<short>("Level")
+                        .HasColumnType("smallint")
+                        .HasColumnName("level");
+
+                    b.Property<DateTimeOffset?>("NextReviewAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("next_review_at");
+
+                    b.HasKey("MeaningId");
+
+                    b.HasIndex("Level");
+
+                    b.HasIndex("NextReviewAt");
+
+                    b.ToTable("meaning_progress", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_meaning_progress_level", "level BETWEEN 0 AND 5");
                         });
                 });
 
@@ -275,9 +409,17 @@ namespace VoP.Repository.Migrations
                         .HasColumnName("id")
                         .HasDefaultValueSql("gen_random_uuid()");
 
+                    b.Property<bool>("IsLegacy")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_legacy");
+
                     b.Property<short>("LevelAtStart")
                         .HasColumnType("smallint")
                         .HasColumnName("level_at_start");
+
+                    b.Property<Guid?>("MeaningId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("meaning_id");
 
                     b.Property<int>("Position")
                         .HasColumnType("int")
@@ -301,16 +443,17 @@ namespace VoP.Repository.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("MeaningId");
+
                     b.HasIndex("VocabularyId")
                         .HasDatabaseName("session_words_vocabulary_id_idx");
+
+                    b.HasIndex("SessionId", "MeaningId")
+                        .IsUnique();
 
                     b.HasIndex("SessionId", "Position")
                         .IsUnique()
                         .HasDatabaseName("session_words_session_id_position_key");
-
-                    b.HasIndex("SessionId", "VocabularyId")
-                        .IsUnique()
-                        .HasDatabaseName("session_words_session_id_vocabulary_id_key");
 
                     b.ToTable("session_words", null, t =>
                         {
@@ -343,6 +486,10 @@ namespace VoP.Repository.Migrations
                     b.Property<string>("Ipa")
                         .HasColumnType("varchar(160)")
                         .HasColumnName("ipa");
+
+                    b.Property<bool>("IsSuspended")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_suspended");
 
                     b.Property<string>("NormalizedTerm")
                         .IsRequired()
@@ -385,6 +532,10 @@ namespace VoP.Repository.Migrations
                     b.Property<string>("ClozeAnswer")
                         .HasColumnType("text")
                         .HasColumnName("cloze_answer");
+
+                    b.Property<bool>("ClozeConfirmed")
+                        .HasColumnType("boolean")
+                        .HasColumnName("cloze_confirmed");
 
                     b.Property<string>("ClozeSentenceEn")
                         .HasColumnType("text")
@@ -431,6 +582,18 @@ namespace VoP.Repository.Migrations
                         .HasColumnName("created_at")
                         .HasDefaultValueSql("now()");
 
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<long?>("DictionaryDefinitionId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("dictionary_definition_id");
+
+                    b.Property<long?>("DictionaryEntryId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("dictionary_entry_id");
+
                     b.Property<int>("DisplayOrder")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
@@ -464,9 +627,32 @@ namespace VoP.Repository.Migrations
 
                     b.HasIndex("VocabularyId", "DisplayOrder")
                         .IsUnique()
-                        .HasDatabaseName("vocabulary_meanings_vocabulary_id_display_order_key");
+                        .HasDatabaseName("vocabulary_meanings_vocabulary_id_display_order_key")
+                        .HasFilter("deleted_at IS NULL");
+
+                    b.HasIndex("VocabularyId", "DictionaryEntryId", "DictionaryDefinitionId")
+                        .IsUnique()
+                        .HasFilter("deleted_at IS NULL");
 
                     b.ToTable("vocabulary_meanings", (string)null);
+                });
+
+            modelBuilder.Entity("VoP.Repository.Entities.DictionaryPronunciation", b =>
+                {
+                    b.HasOne("VoP.Repository.Entities.DictionaryEntry", null)
+                        .WithMany("Pronunciations")
+                        .HasForeignKey("EntryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("VoP.Repository.Entities.DictionarySense", b =>
+                {
+                    b.HasOne("VoP.Repository.Entities.DictionaryEntry", null)
+                        .WithMany("Senses")
+                        .HasForeignKey("EntryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("VoP.Repository.Entities.ExerciseAttempt", b =>
@@ -523,6 +709,15 @@ namespace VoP.Repository.Migrations
                     b.Navigation("Vocabulary");
                 });
 
+            modelBuilder.Entity("VoP.Repository.Entities.MeaningProgress", b =>
+                {
+                    b.HasOne("VoP.Repository.Entities.VocabularyMeaning", null)
+                        .WithOne("Progress")
+                        .HasForeignKey("VoP.Repository.Entities.MeaningProgress", "MeaningId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("VoP.Repository.Entities.ReviewEvaluation", b =>
                 {
                     b.HasOne("VoP.Repository.Entities.SessionWord", "SessionWord")
@@ -536,6 +731,11 @@ namespace VoP.Repository.Migrations
 
             modelBuilder.Entity("VoP.Repository.Entities.SessionWord", b =>
                 {
+                    b.HasOne("VoP.Repository.Entities.VocabularyMeaning", "Meaning")
+                        .WithMany()
+                        .HasForeignKey("MeaningId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("VoP.Repository.Entities.PracticeSession", "Session")
                         .WithMany("SessionWords")
                         .HasForeignKey("SessionId")
@@ -547,6 +747,8 @@ namespace VoP.Repository.Migrations
                         .HasForeignKey("VocabularyId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("Meaning");
 
                     b.Navigation("Session");
 
@@ -572,7 +774,19 @@ namespace VoP.Repository.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("VoP.Repository.Entities.DictionarySense", null)
+                        .WithMany()
+                        .HasForeignKey("DictionaryEntryId", "DictionaryDefinitionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("Vocabulary");
+                });
+
+            modelBuilder.Entity("VoP.Repository.Entities.DictionaryEntry", b =>
+                {
+                    b.Navigation("Pronunciations");
+
+                    b.Navigation("Senses");
                 });
 
             modelBuilder.Entity("VoP.Repository.Entities.PracticeSession", b =>
@@ -608,6 +822,8 @@ namespace VoP.Repository.Migrations
                     b.Navigation("ExerciseAttempts");
 
                     b.Navigation("FlashcardReviews");
+
+                    b.Navigation("Progress");
 
                     b.Navigation("VocabularyExamples");
                 });

@@ -23,6 +23,7 @@ export function QuestionForm({
   onAnswer,
   feedback,
   onNext,
+  onSkipAudio,
   advancing,
   ipa
 }: {
@@ -31,6 +32,7 @@ export function QuestionForm({
   onAnswer: (answer: string) => void
   feedback?: Answer
   onNext: () => void
+  onSkipAudio: () => void
   advancing: boolean
   ipa?: string | null
 }) {
@@ -83,7 +85,7 @@ export function QuestionForm({
             question.type === 'fill_blank' ? 'sentence' : 'question-word'
           }
         >
-          <span>{question.prompt}</span>
+          <span className="whitespace-pre-line">{question.prompt}</span>
           {question.type === 'meaning_mcq' && (
             <SpeakButton term={question.prompt} />
           )}
@@ -92,21 +94,19 @@ export function QuestionForm({
       {question.type === 'meaning_mcq' && ipa && (
         <p className="question-ipa">{ipa}</p>
       )}
-      {question.audioUrl && (
+      {listening && (
         <div className="practice-audio">
-          <audio
+          {question.audioUrl && <audio
             aria-label="Âm thanh câu hỏi"
             controls
             src={question.audioUrl}
             preload="none"
             onError={() => setAudioError(true)}
-          />
-          {audioError && (
-            <p role="alert">
-              Không tải được âm thanh. Thử tải lại trang hoặc thoát phiên và tắt
-              câu hỏi nghe để học lại.
-            </p>
-          )}
+          />}
+          {(audioError || !question.audioUrl) && <p role="alert">Không phát được âm thanh offline.</p>}
+          {!feedback && <Button type="button" className="btn btn-secondary" disabled={pending} onClick={onSkipAudio}>
+            Bỏ qua câu nghe
+          </Button>}
         </div>
       )}
       {question.options.length ? (

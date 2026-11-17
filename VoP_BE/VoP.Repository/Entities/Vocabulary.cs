@@ -7,6 +7,7 @@ public class Vocabulary
     public Guid Id { get; set; }
     public string Term { get; set; } = null!;
     public string NormalizedTerm { get; set; } = null!;
+    public bool IsSuspended { get; set; }
     public string? Ipa { get; set; }
     public string? AudioUrl { get; set; }
     public DateTimeOffset CreatedAt { get; set; }

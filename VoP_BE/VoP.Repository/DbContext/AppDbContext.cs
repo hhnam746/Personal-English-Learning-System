@@ -17,6 +17,12 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<ReviewEvaluation> ReviewEvaluations => Set<ReviewEvaluation>();
     public DbSet<FlashcardReview> FlashcardReviews => Set<FlashcardReview>();
 
+    public DbSet<DictionaryEntry> DictionaryEntries => Set<DictionaryEntry>();
+    public DbSet<DictionarySense> DictionarySenses => Set<DictionarySense>();
+    public DbSet<DictionaryPronunciation> DictionaryPronunciations => Set<DictionaryPronunciation>();
+    public DbSet<DictionaryImport> DictionaryImports => Set<DictionaryImport>();
+    public DbSet<MeaningProgress> MeaningProgress => Set<MeaningProgress>();
+
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
     {
         configurationBuilder.Conventions.Remove(typeof(ForeignKeyIndexConvention));
@@ -31,11 +37,46 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         modelBuilder.HasPostgresEnum<ReviewOutcome>(name: "review_outcome");
         modelBuilder.HasPostgresEnum<FlashcardRating>(name: "flashcard_rating");
 
+        modelBuilder.Entity<DictionaryEntry>(builder =>
+        {
+            builder.ToTable("dictionary_entries");
+            builder.Property(x => x.Id).ValueGeneratedNever();
+            builder.HasIndex(x => x.NormalizedTerm).HasOperators("text_pattern_ops");
+        });
+        modelBuilder.Entity<DictionarySense>(builder =>
+        {
+            builder.ToTable("dictionary_senses");
+            builder.HasKey(x => new { x.EntryId, x.DefinitionId });
+            builder.HasOne<DictionaryEntry>().WithMany(x => x.Senses).HasForeignKey(x => x.EntryId);
+        });
+        modelBuilder.Entity<DictionaryPronunciation>(builder =>
+        {
+            builder.ToTable("dictionary_pronunciations");
+            builder.Property(x => x.Id).ValueGeneratedNever();
+            builder.HasOne<DictionaryEntry>().WithMany(x => x.Pronunciations).HasForeignKey(x => x.EntryId);
+            builder.HasIndex(x => x.EntryId);
+        });
+        modelBuilder.Entity<DictionaryImport>().ToTable("dictionary_imports").HasKey(x => x.Checksum);
+        modelBuilder.Entity<MeaningProgress>(builder =>
+        {
+            builder.ToTable("meaning_progress", table => table.HasCheckConstraint("ck_meaning_progress_level", "level BETWEEN 0 AND 5"));
+            builder.HasKey(x => x.MeaningId);
+            builder.Property(x => x.MeaningId).HasColumnName("meaning_id");
+            builder.Property(x => x.Level).HasColumnName("level");
+            builder.Property(x => x.FirstLearnedAt).HasColumnName("first_learned_at");
+            builder.Property(x => x.LastReviewedAt).HasColumnName("last_reviewed_at");
+            builder.Property(x => x.NextReviewAt).HasColumnName("next_review_at");
+            builder.HasOne<VocabularyMeaning>().WithOne(x => x.Progress).HasForeignKey<MeaningProgress>(x => x.MeaningId).OnDelete(DeleteBehavior.Restrict);
+            builder.HasIndex(x => x.Level);
+            builder.HasIndex(x => x.NextReviewAt);
+        });
+
         modelBuilder.Entity<Vocabulary>(builder =>
         {
             builder.ToTable("vocabularies");
             builder.HasKey(x => x.Id);
             builder.Property(x => x.Id).HasColumnName("id").HasColumnType("uuid").IsRequired().HasDefaultValueSql("gen_random_uuid()");
+            builder.Property(x => x.IsSuspended).HasColumnName("is_suspended");
             builder.Property(x => x.Term).HasColumnName("term").HasColumnType("varchar(255)").IsRequired();
             builder.Property(x => x.NormalizedTerm).HasColumnName("normalized_term").HasColumnType("varchar(255)").IsRequired();
             builder.HasIndex(x => x.NormalizedTerm).IsUnique();
@@ -54,6 +95,13 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             builder.HasKey(x => x.Id);
             builder.Property(x => x.Id).HasColumnName("id").HasColumnType("uuid").IsRequired().HasDefaultValueSql("gen_random_uuid()");
             builder.Property(x => x.VocabularyId).HasColumnName("vocabulary_id").HasColumnType("uuid").IsRequired();
+            builder.Property(x => x.DeletedAt).HasColumnName("deleted_at");
+            builder.Property(x => x.DictionaryEntryId).HasColumnName("dictionary_entry_id");
+            builder.Property(x => x.DictionaryDefinitionId).HasColumnName("dictionary_definition_id");
+            builder.HasOne<DictionarySense>().WithMany()
+                .HasForeignKey(x => new { x.DictionaryEntryId, x.DictionaryDefinitionId }).OnDelete(DeleteBehavior.Restrict);
+            builder.HasIndex(x => new { x.VocabularyId, x.DictionaryEntryId, x.DictionaryDefinitionId })
+                .HasFilter("deleted_at IS NULL").IsUnique();
             builder.Property(x => x.MeaningVi).HasColumnName("meaning_vi").HasColumnType("text").IsRequired();
             builder.Property(x => x.PartOfSpeech).HasColumnName("part_of_speech").HasColumnType("varchar(40)");
             builder.Property(x => x.IpaOverride).HasColumnName("ipa_override").HasColumnType("varchar(160)");
@@ -61,7 +109,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             builder.Property(x => x.CreatedAt).HasColumnName("created_at").HasColumnType("timestamptz").IsRequired().HasDefaultValueSql("now()");
             builder.Property(x => x.UpdatedAt).HasColumnName("updated_at").HasColumnType("timestamptz").IsRequired().HasDefaultValueSql("now()");
             builder.HasOne(x => x.Vocabulary).WithMany(x => x.VocabularyMeanings).HasForeignKey(x => x.VocabularyId).OnDelete(DeleteBehavior.Restrict);
-            builder.HasIndex(x => new { x.VocabularyId, x.DisplayOrder }).HasDatabaseName("vocabulary_meanings_vocabulary_id_display_order_key").IsUnique();
+            builder.HasIndex(x => new { x.VocabularyId, x.DisplayOrder }).HasDatabaseName("vocabulary_meanings_vocabulary_id_display_order_key").HasFilter("deleted_at IS NULL").IsUnique();
         });
 
         modelBuilder.Entity<VocabularyExample>(builder =>
@@ -73,6 +121,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             builder.Property(x => x.SentenceEn).HasColumnName("sentence_en").HasColumnType("text").IsRequired();
             builder.Property(x => x.SentenceVi).HasColumnName("sentence_vi").HasColumnType("text");
             builder.Property(x => x.ClozeSentenceEn).HasColumnName("cloze_sentence_en").HasColumnType("text");
+            builder.Property(x => x.ClozeConfirmed).HasColumnName("cloze_confirmed");
             builder.Property(x => x.ClozeAnswer).HasColumnName("cloze_answer").HasColumnType("text");
             builder.Property(x => x.CreatedAt).HasColumnName("created_at").HasColumnType("timestamptz").IsRequired().HasDefaultValueSql("now()");
             builder.HasOne(x => x.Meaning).WithMany(x => x.VocabularyExamples).HasForeignKey(x => x.MeaningId).OnDelete(DeleteBehavior.Restrict);
@@ -86,6 +135,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
                 table.HasCheckConstraint("ck_learning_progress_0", "level BETWEEN 0 AND 5");
             });
             builder.HasKey(x => x.VocabularyId);
+            builder.Property(x => x.MappedMeaningId).HasColumnName("mapped_meaning_id");
             builder.Property(x => x.VocabularyId).HasColumnName("vocabulary_id").HasColumnType("uuid").IsRequired();
             builder.Property(x => x.Level).HasColumnName("level").HasColumnType("smallint").IsRequired().HasDefaultValue((short)0);
             builder.Property(x => x.FirstLearnedAt).HasColumnName("first_learned_at").HasColumnType("timestamptz");
@@ -126,7 +176,11 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             builder.Property(x => x.LevelAtStart).HasColumnName("level_at_start").HasColumnType("smallint").IsRequired();
             builder.HasOne(x => x.Session).WithMany(x => x.SessionWords).HasForeignKey(x => x.SessionId).OnDelete(DeleteBehavior.Restrict);
             builder.HasOne(x => x.Vocabulary).WithMany(x => x.SessionWords).HasForeignKey(x => x.VocabularyId).OnDelete(DeleteBehavior.Restrict);
-            builder.HasIndex(x => new { x.SessionId, x.VocabularyId }).HasDatabaseName("session_words_session_id_vocabulary_id_key").IsUnique();
+            builder.Property(x => x.MeaningId).HasColumnName("meaning_id");
+            builder.Property(x => x.IsLegacy).HasColumnName("is_legacy");
+            builder.HasOne(x => x.Meaning).WithMany().HasForeignKey(x => x.MeaningId).OnDelete(DeleteBehavior.Restrict);
+            builder.HasIndex(x => new { x.SessionId, x.MeaningId }).IsUnique();
+            builder.HasIndex(x => x.MeaningId);
             builder.HasIndex(x => new { x.SessionId, x.Position }).HasDatabaseName("session_words_session_id_position_key").IsUnique();
             builder.HasIndex(x => x.VocabularyId).HasDatabaseName("session_words_vocabulary_id_idx");
         });

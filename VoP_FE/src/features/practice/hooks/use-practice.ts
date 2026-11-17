@@ -30,7 +30,14 @@ export function usePractice(id: string, questions: boolean) {
     queryFn: () =>
       Promise.all(
         (session.data?.words.filter((w) => w.levelAtStart === 0) || []).map(
-          (w) => vocabularyService.get(w.vocabularyId)
+          async (w) => {
+            const word = await vocabularyService.get(w.vocabularyId)
+            return {
+              ...word,
+              id: w.id,
+              meanings: w.meaningId ? word.meanings.filter(m => m.id === w.meaningId) : word.meanings
+            }
+          }
         )
       ),
     enabled: !!id && session.data?.status === 'in_progress' && !questions
@@ -49,6 +56,14 @@ export function usePractice(id: string, questions: boolean) {
     enabled: !!id && session.data?.status === 'completed'
   })
   const start = useMutation({ mutationFn: service.start, onError: error })
+  const skipAudio = useMutation({
+    mutationFn: service.skipAudio,
+    onSuccess: async () => {
+      await next.refetch()
+      await refresh()
+    },
+    onError: error
+  })
   const answer = useMutation({ mutationFn: service.answer, onError: error })
   const complete = useMutation({
     mutationFn: service.complete,
@@ -82,6 +97,7 @@ export function usePractice(id: string, questions: boolean) {
     answer,
     complete,
     abandon,
+    skipAudio,
     advance
   }
 }

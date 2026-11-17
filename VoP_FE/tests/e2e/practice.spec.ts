@@ -1,5 +1,12 @@
 import { test, expect } from '@playwright/test'
 
+test.beforeEach(async ({ request }) => {
+  const previous = await (await request.get('/api/practice-sessions?pageSize=100')).json()
+  for (const session of previous.items)
+    if (session.status === 'in_progress')
+      await request.post(`/api/practice-sessions/${session.id}/abandon`)
+})
+
 test('Practice recovers stale pointer, preserves failed answer, resumes and abandons', async ({
   page,
   request

@@ -13,7 +13,8 @@ public sealed class VocabulariesController(IService service) : ControllerBase
          [FromQuery] int? level = null,
          [FromQuery] bool dueOnly = false,
          [FromQuery] string sort = "recent",
-         CancellationToken ct = default) => Ok(await service.List(search, page, pageSize, ct, level, dueOnly, sort));
+         [FromQuery] string? exactTerm = null,
+         CancellationToken ct = default) => Ok(await service.List(search, page, pageSize, ct, level, dueOnly, sort, exactTerm));
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> Get(Guid id, CancellationToken ct) => Ok(await service.Get(id, ct));
     [HttpPost]
@@ -22,8 +23,15 @@ public sealed class VocabulariesController(IService service) : ControllerBase
         var v = await service.Save(null, request, ct);
         return CreatedAtAction(nameof(Get), new { id = v.Id }, v);
     }
+    [HttpPost("dictionary-meanings")]
+    public async Task<IActionResult> Append(VocabularyRequest request, CancellationToken ct) =>
+        Ok(await service.Save(null, request, ct, append: true));
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(Guid id, VocabularyRequest request, CancellationToken ct) => Ok(await service.Save(id, request, ct));
+    [HttpPatch("{id:guid}/meanings/{meaningId:guid}/dictionary-source")]
+    public async Task<IActionResult> LinkSource(Guid id, Guid meaningId, DictionarySourceRequest request, CancellationToken ct) =>
+        Ok(await service.LinkSource(id, meaningId, request, ct));
+
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
     {

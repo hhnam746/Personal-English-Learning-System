@@ -10,7 +10,7 @@ export default {
         signal
       })
     ).data,
-  rate: async ({ id, rating }: { id: string; rating: Rating }) => {
-    await api.post(`/flashcards/${id}/reviews`, { rating })
+  rate: async ({ id, meaningId, rating }: { id: string; meaningId?: string; rating: Rating }) => {
+    await api.post(`/flashcards/${id}/reviews`, { meaningId, rating })
   }
 }

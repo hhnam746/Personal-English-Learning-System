@@ -11,20 +11,10 @@ export function SpeakButton({
   text?: string
 }) {
   const speak = () => {
-    if (audioUrl) {
-      void new Audio(audioUrl)
-        .play()
-        .catch(() => toast.error('Không phát được âm thanh.'))
-      return
-    }
-    if (!('speechSynthesis' in window)) {
-      toast.error('Thiết bị chưa hỗ trợ phát âm.')
-      return
-    }
-    window.speechSynthesis.cancel()
-    const utterance = new SpeechSynthesisUtterance(term)
-    utterance.lang = 'en-US'
-    window.speechSynthesis.speak(utterance)
+    const local = audioUrl && /^\/audio\/[a-z0-9_-]+\.(mp3|wav|ogg)$/i.test(audioUrl)
+    const pronounce = () => new Audio(`/api/pronunciation?term=${encodeURIComponent(term)}`).play()
+    void (local ? new Audio(audioUrl).play().catch(pronounce) : pronounce())
+      .catch(() => toast.error('Thiết bị chưa có âm thanh phát âm offline.'))
   }
   return (
     <Button

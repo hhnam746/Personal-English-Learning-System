@@ -1,6 +1,7 @@
 import * as React from "react"
 import { Combobox as ComboboxPrimitive } from "@animate-ui/react/primitives/base-ui"
 import { cn } from "cn"
+import { Input } from "@/components/ui/input"
 import { CheckIcon, ChevronDownIcon, XIcon } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -61,6 +62,16 @@ function ComboboxInput({
   showTrigger?: boolean
   showClear?: boolean
 }) {
+  if (!showTrigger && !showClear && !children) {
+    return (
+      <ComboboxPrimitive.Input
+        {...props}
+        className={className}
+        render={<Input disabled={disabled} />}
+      />
+    )
+  }
+
   return (
     <InputGroup className={cn("w-auto", className)}>
       <ComboboxPrimitive.Input

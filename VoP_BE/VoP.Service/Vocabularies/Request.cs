@@ -17,6 +17,8 @@ public sealed class VocabularyRequest
 public sealed class MeaningRequest
 {
     public Guid? Id { get; set; }
+    public long? DictionaryEntryId { get; set; }
+    public long? DictionaryDefinitionId { get; set; }
     [Required, StringLength(3000)]
     public string MeaningVi { get; set; } = "";
     [StringLength(40)]
@@ -36,8 +38,11 @@ public sealed class ExampleRequest
     public string? SentenceVi { get; set; }
     [StringLength(5000)]
     public string? ClozeSentenceEn { get; set; }
+    public bool ClozeConfirmed { get; set; }
     [StringLength(255)]
     public string? ClozeAnswer { get; set; }
 }
 
 public sealed record PronunciationRequest([StringLength(160)] string? Ipa, [StringLength(2048)] string? AudioUrl);
+
+public record DictionarySourceRequest(long EntryId, long DefinitionId);

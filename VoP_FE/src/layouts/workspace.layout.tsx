@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
+import type { MouseEvent } from 'react'
 import {
   Link,
   NavLink,
@@ -18,6 +19,9 @@ import {
   Layers,
   ChartNoAxesColumn
 } from 'lucide-react'
+import { motion } from 'motion/react'
+import { flushSync } from 'react-dom'
+import recallMark from '@/assets/recall-mark.png'
 import { Button } from '@/components/ui/button'
 import { useThemeStore } from '@/lib/zustand/theme.store'
 import { useWordDialog } from '@/features/vocabularies/hooks/use-word-dialog'
@@ -40,6 +44,40 @@ export default function WorkspaceLayout() {
   const navigate = useNavigate()
   const [search, setSearch] = useState('')
   const searchInput = useRef<HTMLInputElement>(null)
+  const themeTransition = useRef<ViewTransition | null>(null)
+  const changeTheme = (event: MouseEvent<HTMLButtonElement>) => {
+    themeTransition.current?.skipTransition()
+    if (
+      !document.startViewTransition ||
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    ) {
+      toggle()
+      return
+    }
+
+    const root = document.documentElement
+    const button = event.currentTarget.getBoundingClientRect()
+    const x = button.left + button.width / 2
+    const y = button.top + button.height / 2
+    const radius = Math.hypot(
+      Math.max(x, window.innerWidth - x),
+      Math.max(y, window.innerHeight - y),
+    )
+    root.style.setProperty('--theme-reveal-origin', `${x}px ${y}px`)
+    root.style.setProperty('--theme-reveal-radius', `${radius}px`)
+    root.dataset.themeReveal = ''
+    const transition = document.startViewTransition(() => flushSync(toggle))
+    themeTransition.current = transition
+    const cleanup = () => {
+      if (themeTransition.current !== transition) return
+      themeTransition.current = null
+      delete root.dataset.themeReveal
+      root.style.removeProperty('--theme-reveal-origin')
+      root.style.removeProperty('--theme-reveal-radius')
+    }
+    void transition.ready.catch(() => {})
+    void transition.finished.then(cleanup, cleanup)
+  }
   useEffect(() => {
     document.documentElement.dataset.theme = dark ? 'dark' : 'light'
     document.documentElement.classList.toggle('dark', dark)
@@ -69,13 +107,27 @@ export default function WorkspaceLayout() {
         key={path}
         to={path}
         end={path === '/'}
-        aria-label={mobile ? label : undefined}
+        aria-label={label}
         className={({ isActive }) =>
           `${mobile ? '' : 'nav-item'} ${isActive ? 'active' : ''}`
         }
       >
-        <Icon className="icon" />
-        <span>{mobile && path === '/library' ? 'Kho từ' : label}</span>
+        {({ isActive }) => (
+          <>
+            {!mobile && isActive && (
+              <motion.span
+                aria-hidden="true"
+                className="nav-selection"
+                layoutId="sidebar-selection"
+                transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+              />
+            )}
+            <Icon className="icon" aria-hidden="true" />
+            <span className="nav-label">
+              {mobile && path === '/library' ? 'Kho từ' : label}
+            </span>
+          </>
+        )}
       </NavLink>
     ))
   return (
@@ -90,8 +142,9 @@ export default function WorkspaceLayout() {
         }
       >
         <aside className="sidebar">
-          <Link className="brand" to="/" aria-label="VOP — Tổng quan">
-            vop<span>•</span>
+          <Link className="brand" to="/" aria-label="Recall — Tổng quan">
+            <img src={recallMark} width={30} height={30} alt="" />
+            <span>recall</span>
           </Link>
           <nav aria-label="Điều hướng chính">{links()}</nav>
           <div className="sidebar-bottom">
@@ -99,12 +152,11 @@ export default function WorkspaceLayout() {
               className="theme-toggle"
               aria-label="Chuyển giao diện sáng hoặc tối"
               aria-pressed={dark}
-              onClick={toggle}
+              onClick={changeTheme}
             >
-              <Sun className="icon" />
-              <Moon className="icon" />
+              <Sun className="icon" aria-hidden="true" />
+              <Moon className="icon" aria-hidden="true" />
             </button>
-            <span className="muted">Không gian cá nhân</span>
           </div>
         </aside>
         <div className="workspace">
@@ -136,14 +188,13 @@ export default function WorkspaceLayout() {
                     placeholder="Tìm từ vựng…"
                     aria-label="Tìm trong kho từ"
                   />
-                  <kbd>/</kbd>
                 </label>
               </form>
               <button
                 className="mobile-theme icon-button"
                 aria-label="Đổi giao diện"
                 aria-pressed={dark}
-                onClick={toggle}
+                onClick={changeTheme}
               >
                 {dark ? <Moon className="icon" /> : <Sun className="icon" />}
               </button>
@@ -163,7 +214,7 @@ export default function WorkspaceLayout() {
           {links(true)}
         </nav>
       </div>
-      {(dialog.create || dialog.detailId || dialog.editId) && (
+      {(dialog.create || dialog.detailId || dialog.editId || dialog.deleteId) && (
         <Suspense fallback={null}>
           <VocabularyDialog />
         </Suspense>

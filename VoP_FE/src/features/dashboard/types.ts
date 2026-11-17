@@ -8,9 +8,14 @@ export interface DailyActivity {
 }
 export interface Dashboard {
   totalWords: number
-  learnedWords: number
-  newWords: number
-  dueWords: number
+  totalMeanings: number
+  masteredMeanings: number
+  listeningAnswers: number
+  correctListeningAnswers: number
+  learnedMeanings: number
+  newMeanings: number
+  availableNewMeanings: number
+  dueMeanings: number
   levels: { level: number; count: number }[]
   assessmentAnswers: number
   correctAssessments: number

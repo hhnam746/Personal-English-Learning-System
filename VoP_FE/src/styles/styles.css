@@ -165,7 +165,7 @@ a {
     color 0.2s var(--ease),
     opacity 0.2s var(--ease);
 }
-button:not(:disabled):active {
+button:not(:disabled, .flashcard):active {
   transform: scale(0.98);
 }
 input {
@@ -435,16 +435,6 @@ h1 {
   color: var(--ink);
   font-size: 13px;
 }
-.search-input:focus-within {
-  outline: 2px solid var(--accent);
-}
-.search-input kbd {
-  color: var(--faint);
-  border: 1px solid var(--line);
-  width: 22px;
-  border-radius: 5px;
-  text-align: center;
-}
 select {
   background: var(--input);
   color: var(--ink);
@@ -453,6 +443,20 @@ select {
   border-radius: 14px;
   font-size: 12px;
   max-width: 100%;
+}
+.library-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 24px;
+  margin: 24px 0;
+}
+.library-filter-row > .filter-tabs {
+  margin: 0;
+}
+.library-filter-row > .heading-count {
+  margin-inline-start: auto;
 }
 .filter-tabs {
   display: flex;
@@ -554,7 +558,7 @@ select {
 .row-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 0;
+  gap: 6px;
 }
 .row-actions .icon-button {
   width: 28px;
@@ -1015,11 +1019,13 @@ kbd {
   height: 340px;
   position: relative;
   transform-style: preserve-3d;
-  transition:
-    transform 280ms var(--ease),
-    scale 100ms ease-out;
   border-radius: 28px;
   padding: 0;
+}
+.flashcard:not(:disabled) {
+  transition:
+    transform 460ms var(--ease),
+    scale 100ms ease-out;
 }
 .flashcard.flipped {
   transform: rotateY(180deg);

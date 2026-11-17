@@ -1,5 +1,12 @@
 import { Progress } from '@/components/ui/progress'
-import { NativeSelect } from '@/components/ui/native-select'
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select'
 import type { CSSProperties } from 'react'
 import { Link } from 'react-router-dom'
 import {
@@ -30,7 +37,7 @@ export function DashboardContent({
   data: Dashboard
   days: number
   onDays: (days: number) => void
-  dueWords: { vocabularyId: string; term: string }[]
+  dueWords: { vocabularyId: string; meaningId: string; meaningVi: string; term: string }[]
   dueError: boolean
   onDueRetry: () => void
 }) {
@@ -46,20 +53,21 @@ export function DashboardContent({
           <h2>Tổng số từ vựng</h2>
           <div className="vocab-total">
             <strong>{data.totalWords}</strong>
+            <span className="muted">{data.totalMeanings} nghĩa</span>
           </div>
           <Progress
             className="meter"
-            aria-label="Tỷ lệ từ đã bắt đầu học"
-            value={data.learnedWords}
-            max={Math.max(data.totalWords, 1)}
+            aria-label="Tỷ lệ nghĩa đã bắt đầu học"
+            value={data.learnedMeanings}
+            max={Math.max(data.totalMeanings, 1)}
           />
           <div className="vocab-breakdown">
             <span>
               <BookOpen className="icon" /> Đã học{' '}
-              <strong>{data.learnedWords}</strong> từ
+              <strong>{data.learnedMeanings}</strong> nghĩa
             </span>
             <Link className="text-link" to="/library?filter=0">
-              Chưa học <strong>{data.newWords}</strong> từ
+              Chưa học <strong>{data.newMeanings}</strong> nghĩa
             </Link>
           </div>
         </SummaryBlob>
@@ -105,26 +113,26 @@ export function DashboardContent({
             <CalendarDays className="icon" /> Đến lúc ôn lại
           </h2>
           <div className="review-total">
-            <strong>{data.dueWords}</strong>
+            <strong>{data.dueMeanings}</strong>
             <span>từ đang chờ bạn</span>
           </div>
           <div className="due-words">
             {dueError ? (
               <button className="text-link" onClick={onDueRetry}>
-                Chưa tải được từ đến hạn. Thử lại
+                Chưa tải được nghĩa đến hạn. Thử lại
               </button>
             ) : dueWords.length ? (
               dueWords.map((w) => (
                 <button
                   className="word-chip"
-                  key={w.vocabularyId}
+                  key={w.meaningId}
                   onClick={() => dialog.openDetail(w.vocabularyId)}
                 >
-                  {w.term}
+                  {w.term} · {w.meaningVi}
                 </button>
               ))
             ) : (
-              <span className="muted">Chưa có từ đến hạn.</span>
+              <span className="muted">Chưa có nghĩa đến hạn.</span>
             )}
           </div>
           <Button className="btn btn-primary" asChild>
@@ -138,7 +146,7 @@ export function DashboardContent({
           </Button>
           <Link className="text-link review-footer" to="/library?filter=due">
             <Clock3 className="icon" />
-            Xem {data.dueWords} từ đến hạn <ArrowRight className="icon" />
+            Xem {data.dueMeanings} nghĩa đến hạn <ArrowRight className="icon" />
           </Link>
         </section>
       </div>
@@ -148,15 +156,23 @@ export function DashboardContent({
             <h2>
               <ChartNoAxesColumn className="icon" /> Hoạt động học tập
             </h2>
-            <NativeSelect
-              className="glass-control"
-              aria-label="Khoảng thời gian hoạt động"
-              value={days}
-              onChange={(e) => onDays(Number(e.target.value))}
+            <Select
+              value={String(days)}
+              onValueChange={(value) => onDays(Number(value))}
             >
-              <option value={7}>7 ngày gần đây</option>
-              <option value={14}>14 ngày gần đây</option>
-            </NativeSelect>
+              <SelectTrigger
+                className="glass-control"
+                aria-label="Khoảng thời gian hoạt động"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent position="popper" align="end">
+                <SelectGroup>
+                  <SelectItem value="7">7 ngày gần đây</SelectItem>
+                  <SelectItem value="14">14 ngày gần đây</SelectItem>
+                </SelectGroup>
+              </SelectContent>
+            </Select>
           </div>
           <ActivityChart days={data.activity} />
           <p className="chart-note">Lượt đánh giá · Ngày UTC</p>

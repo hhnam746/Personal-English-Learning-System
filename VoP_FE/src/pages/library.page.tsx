@@ -1,6 +1,13 @@
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { motion } from 'motion/react'
-import { NativeSelect } from '@/components/ui/native-select'
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select'
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Search, Pencil, Trash2 } from 'lucide-react'
@@ -66,10 +73,6 @@ export default function LibraryPage() {
           <h1>Kho từ vựng</h1>
           <p>Thêm, tìm kiếm và chỉnh sửa từ đã lưu.</p>
         </div>
-        <div className="heading-count">
-          {total ?? '—'}
-          <span>từ đã lưu</span>
-        </div>
       </div>
       <div className="library-tools">
         <label className="search-input glass-control">
@@ -83,46 +86,53 @@ export default function LibraryPage() {
             onChange={(e) => set('search', e.target.value)}
             placeholder="Tìm từ hoặc nghĩa tiếng Việt…"
           />
-          <kbd aria-hidden="true">/</kbd>
         </label>
-        <NativeSelect
-          className="glass-control"
-          aria-label="Sắp xếp từ"
-          value={sort}
-          onChange={(e) => set('sort', e.target.value)}
-        >
-          <option value="recent">Mới thêm gần đây</option>
-          <option value="alpha">Từ A đến Z</option>
-          <option value="level">Cấp độ tăng dần</option>
-        </NativeSelect>
+        <Select value={sort} onValueChange={(value) => set('sort', value)}>
+          <SelectTrigger className="glass-control" aria-label="Sắp xếp từ">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent position="popper" align="end">
+            <SelectGroup>
+              <SelectItem value="recent">Mới thêm gần đây</SelectItem>
+              <SelectItem value="alpha">Từ A đến Z</SelectItem>
+              <SelectItem value="level">Cấp độ tăng dần</SelectItem>
+            </SelectGroup>
+          </SelectContent>
+        </Select>
       </div>
-      <ToggleGroup
-        type="single"
-        value={filter || 'all'}
-        onValueChange={(value) => {
-          if (value) set('filter', value === 'all' ? '' : value)
-        }}
-        className="filter-tabs glass-segmented"
-        aria-label="Lọc theo cấp độ"
-      >
-        {[
-          ['', 'Tất cả'],
-          ['due', 'Đến hạn'],
-          ['0', 'Chưa học'],
-          ...[1, 2, 3, 4, 5].map((l) => [String(l), `Level ${l}`])
-        ].map(([value, label]) => (
-          <ToggleGroupItem
-            value={value || 'all'}
-            key={value}
-            className={filter === value ? 'selected' : ''}
-          >
-            {label}
-            {!value && total !== undefined && (
-              <span aria-hidden="true">{total}</span>
-            )}
-          </ToggleGroupItem>
-        ))}
-      </ToggleGroup>
+      <div className="library-filter-row">
+        <ToggleGroup
+          type="single"
+          value={filter || 'all'}
+          onValueChange={(value) => {
+            if (value) set('filter', value === 'all' ? '' : value)
+          }}
+          className="filter-tabs glass-segmented"
+          aria-label="Lọc theo cấp độ"
+        >
+          {[
+            ['', 'Tất cả'],
+            ['due', 'Đến hạn'],
+            ['0', 'Chưa học'],
+            ...[1, 2, 3, 4, 5].map((l) => [String(l), `Level ${l}`])
+          ].map(([value, label]) => (
+            <ToggleGroupItem
+              value={value || 'all'}
+              key={value}
+              className={filter === value ? 'selected' : ''}
+            >
+              {label}
+              {!value && total !== undefined && (
+                <span aria-hidden="true">{total}</span>
+              )}
+            </ToggleGroupItem>
+          ))}
+        </ToggleGroup>
+        <div className="heading-count">
+          {total ?? '—'}
+          <span>từ đã lưu</span>
+        </div>
+      </div>
       {query.isPending ? (
         <LoadingState />
       ) : query.isError ? (
@@ -170,7 +180,7 @@ export default function LibraryPage() {
                       <td>
                         <span className={`level-tag level-${word.level}`}>
                           <span aria-hidden="true" />
-                          {word.level ? `Level ${word.level}` : 'Chưa học'}
+                          {word.mixedLevels ? 'Nhiều Level' : word.level ? `Level ${word.level}` : 'Chưa học'}
                         </span>
                       </td>
                       <td>
@@ -179,7 +189,7 @@ export default function LibraryPage() {
                         >
                           {word.isSuspended
                             ? 'Tạm dừng'
-                            : !word.level
+                            : !word.nextReviewAt && !word.level
                               ? 'Chờ học lần đầu'
                               : word.nextReviewAt
                                 ? Date.parse(word.nextReviewAt) <= now

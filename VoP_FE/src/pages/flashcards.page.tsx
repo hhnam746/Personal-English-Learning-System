@@ -19,7 +19,6 @@ export default function FlashcardsPage() {
       <div className="page-heading">
         <div>
           <h1>Flashcard</h1>
-          <p>Lật thẻ để xem nghĩa và tự đánh giá.</p>
         </div>
         <Select
           disabled={pending}
@@ -29,16 +28,12 @@ export default function FlashcardsPage() {
           }
         >
           <SelectTrigger
-            className="flashcard-level-trigger glass-control"
+            className="glass-control"
             aria-label="Lọc thẻ theo cấp độ"
           >
             <SelectValue />
           </SelectTrigger>
-          <SelectContent
-            className="flashcard-level-menu"
-            position="popper"
-            align="end"
-          >
+          <SelectContent position="popper" align="end">
             <SelectGroup>
               <SelectItem value="all">Tất cả các từ</SelectItem>
               {[0, 1, 2, 3, 4, 5].map((l) => (
