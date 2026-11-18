@@ -359,30 +359,14 @@ html[data-theme='dark'] .organic-blob--brain > .organic-blob__glass {
   .organic-blob--summary {
     --blob-float-duration: 9s;
     --blob-float-phase: -2s;
-    --blob-float-x: 2px;
-    --blob-float-y: -4px;
   }
   .organic-blob--accuracy {
     --blob-float-duration: 10s;
     --blob-float-phase: -5s;
-    --blob-float-x: -2px;
-    --blob-float-y: 3px;
   }
   .organic-blob--brain {
     --blob-float-duration: 8s;
     --blob-float-phase: -1s;
-    --blob-float-x: 2px;
-    --blob-float-y: -3px;
-  }
-  :is(.organic-blob--summary, .organic-blob--accuracy, .organic-blob--brain)
-    > :is(
-      .organic-blob__glass,
-      .organic-blob__edge,
-      .organic-blob__shadow,
-      .organic-blob__accent
-    ) {
-    animation: organic-blob-float var(--blob-float-duration) ease-in-out
-      var(--blob-float-phase) infinite;
   }
   :is(.organic-blob--summary, .organic-blob--accuracy, .organic-blob--brain)
     > .organic-blob__glass::after {
@@ -396,13 +380,6 @@ html[data-theme='dark'] .organic-blob--brain > .organic-blob__glass {
     );
     animation: organic-blob-light var(--blob-float-duration) ease-in-out
       var(--blob-float-phase) infinite;
-  }
-}
-
-@keyframes organic-blob-float {
-  50% {
-    transform: translate(var(--blob-float-x), var(--blob-float-y))
-      scale(1.025, 1.040);
   }
 }
 

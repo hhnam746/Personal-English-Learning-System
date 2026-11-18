@@ -16,13 +16,15 @@
 }
 .dashboard-bottom {
   display: grid;
-  grid-template-columns: 1.34fr 1fr;
-  gap: 18px;
+  grid-template-columns: 1.033fr 1fr 1.127fr;
+  gap: 24px;
   align-items: start;
 }
-.dashboard-bottom > .dashboard-activity,
+.dashboard-bottom > .dashboard-activity {
+  grid-column: 1 / 3;
+}
 .dashboard-bottom > .accuracy-panel {
-  grid-column: auto;
+  grid-column: 3;
 }
 .app-shell[data-view='dashboard'] .dashboard-composition h2 {
   font-size: 21px;
@@ -356,7 +358,8 @@ html[data-theme='dark'] .app-shell[data-view='dashboard'] .word-chip {
   }
 }
 @media (min-width: 1280px) and (max-width: 1500px) {
-  .dashboard-top {
+  .dashboard-top,
+  .dashboard-bottom {
     grid-template-columns: 1.03fr 1fr 1.08fr;
     gap: 20px;
   }
@@ -435,6 +438,10 @@ html[data-theme='dark'] .app-shell[data-view='dashboard'] .word-chip {
   .dashboard-bottom {
     grid-template-columns: 1fr;
     gap: 24px;
+  }
+  .dashboard-bottom > .dashboard-activity,
+  .dashboard-bottom > .accuracy-panel {
+    grid-column: auto;
   }
   .app-shell[data-view='dashboard'] .accuracy-panel {
     width: 100%;

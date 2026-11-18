@@ -1,12 +1,16 @@
 import { useId, type CSSProperties, type PropsWithChildren } from 'react'
 import { cn } from '@/shared/utils'
+import { useOrganicMorph } from './organic-morph'
 
 export function BrainBlob({
   className
 }: PropsWithChildren<{ className?: string }>) {
   const id = useId().replace(/:/g, '')
+  const containerRef = useOrganicMorph('brain')
+
   return (
     <div
+      ref={containerRef}
       className={cn('organic-blob organic-blob--brain', className)}
       data-blob-variant="brain"
       style={{ '--blob-clip': `url(#${id}-blob-clip)` } as CSSProperties}

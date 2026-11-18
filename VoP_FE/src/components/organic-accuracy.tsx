@@ -1,13 +1,17 @@
 import { useId, type CSSProperties, type PropsWithChildren } from 'react'
 import { cn } from '@/shared/utils'
+import { useOrganicMorph } from './organic-morph'
 
 export function AccuracyBlob({
   children,
   className
 }: PropsWithChildren<{ className?: string }>) {
   const id = useId().replace(/:/g, '')
+  const containerRef = useOrganicMorph('accuracy')
+
   return (
     <div
+      ref={containerRef}
       className={cn('organic-blob organic-blob--accuracy', className)}
       data-blob-variant="accuracy"
       style={{ '--blob-clip': `url(#${id}-blob-clip)` } as CSSProperties}
