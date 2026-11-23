@@ -5,6 +5,10 @@ namespace VoP.Repository.Entities;
 public class Vocabulary
 {
     public Guid Id { get; set; }
+    public Guid? UserId { get; set; }
+    public string Language { get; set; } = "en";
+    public string? PhoneticReading { get; set; }
+    public string? ScriptType { get; set; }
     public string Term { get; set; } = null!;
     public string NormalizedTerm { get; set; } = null!;
     public bool IsSuspended { get; set; }

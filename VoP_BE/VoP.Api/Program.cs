@@ -34,6 +34,39 @@ builder.Services.AddScoped<VoP.Service.Flashcards.IService, VoP.Service.Flashcar
 builder.Services.AddScoped<VoP.Service.Dashboard.IService, VoP.Service.Dashboard.Service>();
 builder.Services.AddScoped<VoP.Service.Dictionary.IService, VoP.Service.Dictionary.Service>();
 builder.Services.AddSingleton(new OfflineAudio(builder.Configuration.GetValue("OfflinePronunciation:Enabled", OperatingSystem.IsMacOS())));
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ICurrentUserService, VoP.Api.Services.CurrentUserService>();
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("VercelCors", policy =>
+    {
+        policy.SetIsOriginAllowed(origin =>
+            origin.Contains("localhost") ||
+            origin.Contains("127.0.0.1") ||
+            origin.EndsWith(".vercel.app") ||
+            origin.Equals("https://vercel.app", StringComparison.OrdinalIgnoreCase))
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
+});
+var supabaseUrl = builder.Configuration["Supabase:Url"];
+if (!string.IsNullOrEmpty(supabaseUrl))
+{
+    builder.Services.AddAuthentication(Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme)
+        .AddJwtBearer(options =>
+        {
+            options.Authority = $"{supabaseUrl.TrimEnd('/')}/auth/v1";
+            options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
+            {
+                ValidateIssuer = true,
+                ValidIssuer = $"{supabaseUrl.TrimEnd('/')}/auth/v1",
+                ValidateAudience = true,
+                ValidAudience = "authenticated",
+                ValidateLifetime = true
+            };
+        });
+    builder.Services.AddAuthorization();
+}
 builder.Services.AddControllers().AddJsonOptions(o =>
 {
     o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.SnakeCaseLower, false));
@@ -89,6 +122,12 @@ if (app.Environment.IsDevelopment())
     app.MapGet("/", () => Results.Redirect("/swagger")).ExcludeFromDescription();
 }
 app.UseStaticFiles();
+app.UseCors("VercelCors");
+if (!string.IsNullOrEmpty(supabaseUrl))
+{
+    app.UseAuthentication();
+    app.UseAuthorization();
+}
 app.MapControllers();
 app.MapGet("/health", async (AppDbContext db, CancellationToken ct) =>
     await db.Database.CanConnectAsync(ct)

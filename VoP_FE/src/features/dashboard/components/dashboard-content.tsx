@@ -26,6 +26,9 @@ import { BrainBlob } from '@/components/organic-brain'
 import { useWordDialog } from '@/features/vocabularies/hooks/use-word-dialog'
 import type { Dashboard } from '../types'
 import { ActivityChart } from './activity-chart'
+import { GoldenTimeWidget } from './golden-time-widget'
+import { StreakWidget } from './streak-widget'
+import { MochiMemoryTiers } from './mochi-memory-tiers'
 export function DashboardContent({
   data,
   days,
@@ -48,6 +51,7 @@ export function DashboardContent({
   )
   return (
     <div className="dashboard-composition">
+      <GoldenTimeWidget dueCount={data.dueMeanings} newCount={data.newMeanings} />
       <div className="dashboard-top">
         <SummaryBlob className="vocabulary-summary">
           <h2>Tổng số từ vựng</h2>
@@ -149,6 +153,14 @@ export function DashboardContent({
             Xem {data.dueMeanings} nghĩa đến hạn <ArrowRight className="icon" />
           </Link>
         </section>
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+        <div className="lg:col-span-1">
+          <StreakWidget activity={data.activity} />
+        </div>
+        <div className="lg:col-span-2">
+          <MochiMemoryTiers levels={data.levels} totalLearned={data.learnedMeanings} />
+        </div>
       </div>
       <div className="dashboard-bottom">
         <section className="surface dashboard-activity">

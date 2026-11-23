@@ -25,6 +25,8 @@ import recallMark from '@/assets/recall-mark.png'
 import { Button } from '@/components/ui/button'
 import { useThemeStore } from '@/lib/zustand/theme.store'
 import { useWordDialog } from '@/features/vocabularies/hooks/use-word-dialog'
+import { LanguageSelector } from '@/components/language-selector'
+import { UserProfileMenu } from '@/features/auth/components/user-profile-menu'
 const VocabularyDialog = lazy(() =>
   import('@/features/vocabularies/components/vocabulary-dialog').then(
     (module) => ({ default: module.VocabularyDialog })
@@ -190,6 +192,7 @@ export default function WorkspaceLayout() {
                   />
                 </label>
               </form>
+              <LanguageSelector />
               <button
                 className="mobile-theme icon-button"
                 aria-label="Đổi giao diện"
@@ -202,6 +205,7 @@ export default function WorkspaceLayout() {
                 <Plus />
                 Thêm từ mới
               </Button>
+              <UserProfileMenu />
             </div>
           </header>
           <main id="main" tabIndex={-1}>

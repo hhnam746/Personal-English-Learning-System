@@ -13,12 +13,17 @@ public sealed class Service(AppDbContext db) : IService
         .Include(v => v.VocabularyMeanings).ThenInclude(m => m.Progress)
         .Where(v => v.DeletedAt == null);
 
-    public async Task<Page<VocabularyResponse>> List(string? search, int page, int pageSize, CancellationToken ct, int? level = null, bool dueOnly = false, string sort = "recent", string? exactTerm = null)
+    public async Task<Page<VocabularyResponse>> List(string? search, int page, int pageSize, CancellationToken ct, int? level = null, bool dueOnly = false, string sort = "recent", string? exactTerm = null, string? language = null)
     {
         Rules.Paging(page, pageSize);
         Rules.Require(level == null || level is >= 0 and <= 5, "Level must be 0..5.");
         Rules.Require(sort is "recent" or "alpha" or "level", "Sort must be recent, alpha or level.");
         var query = Query.AsNoTracking();
+        if (!string.IsNullOrWhiteSpace(language))
+        {
+            var lang = language.Trim().ToLowerInvariant();
+            query = query.Where(v => v.Language == lang);
+        }
         if (level != null || dueOnly)
         {
             var now = DateTimeOffset.UtcNow;
@@ -94,6 +99,9 @@ public sealed class Service(AppDbContext db) : IService
         {
             v.Term = request.Term.Trim();
             v.NormalizedTerm = normalized;
+            v.Language = string.IsNullOrWhiteSpace(request.Language) ? "en" : request.Language.Trim().ToLowerInvariant();
+            v.PhoneticReading = request.PhoneticReading;
+            v.ScriptType = request.ScriptType;
             v.Ipa = request.Ipa;
             v.AudioUrl = request.AudioUrl;
         }

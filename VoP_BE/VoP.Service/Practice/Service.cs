@@ -91,11 +91,12 @@ public sealed class Service(AppDbContext db, OfflineAudio audio) : IService
             "Extra practice requires explicit vocabularyIds.");
         await using var tx = await LearningMutation.Lock(db, ct);
         var now = DateTimeOffset.UtcNow;
+        var lang = string.IsNullOrWhiteSpace(request.Language) ? "en" : request.Language.Trim().ToLowerInvariant();
         var query = db.VocabularyMeanings
             .Include(m => m.Vocabulary)
             .Include(m => m.Progress)
             .Include(m => m.VocabularyExamples)
-            .Where(m => m.DeletedAt == null && m.Vocabulary.DeletedAt == null && !m.Vocabulary.IsSuspended);
+            .Where(m => m.DeletedAt == null && m.Vocabulary.DeletedAt == null && !m.Vocabulary.IsSuspended && m.Vocabulary.Language == lang);
         var eligible = query.Where(m => m.Progress == null || m.Progress.Level == 0 || m.Progress.NextReviewAt <= now);
         List<VocabularyMeaning> selected;
         if (request.MeaningIds is { Count: > 0 } meanings)
@@ -151,6 +152,7 @@ public sealed class Service(AppDbContext db, OfflineAudio audio) : IService
         var session = new PracticeSession
         {
             Id = Guid.NewGuid(),
+            Language = lang,
             StartedAt = now,
             Status = PracticeSessionStatus.InProgress
         };

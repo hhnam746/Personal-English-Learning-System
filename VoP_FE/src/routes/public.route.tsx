@@ -1,9 +1,27 @@
 import type { RouteObject } from 'react-router-dom'
 import WorkspaceLayout from '@/layouts/workspace.layout'
+import { ProtectedRoute } from '@/features/auth/components/protected-route'
 import { Link } from 'react-router-dom'
+
 export const publicRoutes: RouteObject[] = [
   {
-    element: <WorkspaceLayout />,
+    path: 'login',
+    lazy: async () => ({
+      Component: (await import('@/features/auth/pages/login.page')).default
+    })
+  },
+  {
+    path: 'register',
+    lazy: async () => ({
+      Component: (await import('@/features/auth/pages/register.page')).default
+    })
+  },
+  {
+    element: (
+      <ProtectedRoute>
+        <WorkspaceLayout />
+      </ProtectedRoute>
+    ),
     children: [
       {
         index: true,

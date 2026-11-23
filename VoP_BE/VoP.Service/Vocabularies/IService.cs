@@ -4,7 +4,7 @@ namespace VoP.Service.Vocabularies;
 
 public interface IService
 {
-    Task<Page<VocabularyResponse>> List(string? search, int page, int pageSize, CancellationToken ct, int? level = null, bool dueOnly = false, string sort = "recent", string? exactTerm = null);
+    Task<Page<VocabularyResponse>> List(string? search, int page, int pageSize, CancellationToken ct, int? level = null, bool dueOnly = false, string sort = "recent", string? exactTerm = null, string? language = null);
     Task<VocabularyResponse> Get(Guid id, CancellationToken ct);
     Task<VocabularyResponse> Save(Guid? id, VocabularyRequest request, CancellationToken ct, bool append = false);
     Task<VocabularyResponse> LinkSource(Guid id, Guid meaningId, DictionarySourceRequest request, CancellationToken ct);

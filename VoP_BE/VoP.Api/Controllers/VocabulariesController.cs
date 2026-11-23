@@ -14,7 +14,8 @@ public sealed class VocabulariesController(IService service) : ControllerBase
          [FromQuery] bool dueOnly = false,
          [FromQuery] string sort = "recent",
          [FromQuery] string? exactTerm = null,
-         CancellationToken ct = default) => Ok(await service.List(search, page, pageSize, ct, level, dueOnly, sort, exactTerm));
+         [FromQuery] string? language = null,
+         CancellationToken ct = default) => Ok(await service.List(search, page, pageSize, ct, level, dueOnly, sort, exactTerm, language));
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> Get(Guid id, CancellationToken ct) => Ok(await service.Get(id, ct));
     [HttpPost]

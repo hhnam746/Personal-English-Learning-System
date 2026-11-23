@@ -328,7 +328,7 @@ export function PracticeWorkspace() {
                       <h3>
                         {w.term} <small>{w.ipa}</small>
                       </h3>
-                      <SpeakButton term={w.term} audioUrl={w.audioUrl} />
+                      <SpeakButton term={w.term} audioUrl={w.audioUrl} language={w.language} />
                       {w.meanings.map((m, i) => (
                         <div className="practice-meaning" key={m.id || i}>
                           <p>

@@ -7,6 +7,8 @@ public sealed class SessionRequest
 {
     [Range(1, 12)]
     public int Limit { get; set; } = 12;
+    [StringLength(10)]
+    public string Language { get; set; } = "en";
     [MaxLength(12)]
     public List<Guid>? VocabularyIds { get; set; }
     [MaxLength(12)]

@@ -1,0 +1,65 @@
+name: Backend CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'VoP_BE/**'
+      - '.github/workflows/backend-ci.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'VoP_BE/**'
+      - '.github/workflows/backend-ci.yml'
+
+jobs:
+  build-and-test:
+    name: Build, Checks & Test
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgrespassword
+          POSTGRES_DB: vop_ci_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    defaults:
+      run:
+        working-directory: VoP_BE
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore VoP.sln
+
+      - name: Build solution
+        run: dotnet build VoP.sln --no-restore -c Debug
+
+      - name: Run Database Checks
+        run: dotnet run --project VoP.DatabaseChecks --no-build
+        env:
+          ConnectionStrings__DefaultConnection: 'Host=localhost;Port=5432;Database=vop_ci_test;Username=postgres;Password=postgrespassword'
+
+      - name: Run API Integration Checks
+        run: dotnet run --project VoP.ApiChecks --no-build
+        env:
+          ConnectionStrings__DefaultConnection: 'Host=localhost;Port=5432;Database=vop_ci_test;Username=postgres;Password=postgrespassword'
+
+      - name: Verify Docker build
+        run: docker build -t vop-backend:ci .

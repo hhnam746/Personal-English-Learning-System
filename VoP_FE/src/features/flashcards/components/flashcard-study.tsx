@@ -98,6 +98,7 @@ function Card({
         <SpeakButton
           term={word.term}
           audioUrl={word.audioUrl}
+          language={word.language}
           text="Nghe phát âm"
         />
       </div>

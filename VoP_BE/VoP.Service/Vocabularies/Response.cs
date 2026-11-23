@@ -12,7 +12,10 @@ public record VocabularyResponse(Guid Id,
     short Level,
     DateTimeOffset? NextReviewAt,
     bool IsSuspended,
-    bool MixedLevels = false)
+    bool MixedLevels = false,
+    string Language = "en",
+    string? PhoneticReading = null,
+    string? ScriptType = null)
 {
     public static VocabularyResponse From(Vocabulary v, Guid? meaningId = null)
     {
@@ -42,7 +45,10 @@ public record VocabularyResponse(Guid Id,
         meanings.Select(m => m.Progress?.Level ?? (short)0).DefaultIfEmpty().Min(),
         meanings.Select(m => m.Progress?.NextReviewAt).Min(),
         v.IsSuspended,
-        meanings.Select(m => m.Progress?.Level ?? (short)0).Distinct().Skip(1).Any());
+        meanings.Select(m => m.Progress?.Level ?? (short)0).Distinct().Skip(1).Any(),
+        v.Language,
+        v.PhoneticReading,
+        v.ScriptType);
     }
 }
 

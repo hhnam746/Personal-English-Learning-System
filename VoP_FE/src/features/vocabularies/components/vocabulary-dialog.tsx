@@ -249,7 +249,7 @@ export function VocabularyDialog() {
                 <div className="word-detail">
                   <div className="detail-title">
                     <span>{word.ipa || 'Chưa có IPA'}</span>
-                    <SpeakButton term={word.term} audioUrl={word.audioUrl} />
+                    <SpeakButton term={word.term} audioUrl={word.audioUrl} language={word.language} />
                   </div>
                   {word.meanings.map((m, i) => (
                     <section key={m.id || i}>

@@ -4,6 +4,10 @@ namespace VoP.Service.Vocabularies;
 
 public sealed class VocabularyRequest
 {
+    [StringLength(10)]
+    public string Language { get; set; } = "en";
+    public string? PhoneticReading { get; set; }
+    public string? ScriptType { get; set; }
     [Required, StringLength(255)]
     public string Term { get; set; } = "";
     [StringLength(160)]

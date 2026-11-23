@@ -32,6 +32,7 @@ import {
   vocabularySchema,
   type VocabularyFormValues
 } from '../validations'
+import { useLanguageStore } from '@/lib/zustand/language.store'
 import type { Vocabulary, VocabularyInput } from '../types'
 
 import { partsOfSpeech } from '../part-of-speech'
@@ -278,6 +279,7 @@ export function VocabularyForm({
               try {
                 await onSave({
                   ...values,
+                  language: source?.language || useLanguageStore.getState().currentLanguage,
                   ipa: values.ipa || null,
                   audioUrl: values.audioUrl || null,
                   meanings: values.meanings.map((m, meaningIndex) => ({

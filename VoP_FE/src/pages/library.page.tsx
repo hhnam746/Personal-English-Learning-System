@@ -10,7 +10,8 @@ import {
 } from '@/components/ui/select'
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { Search, Pencil, Trash2 } from 'lucide-react'
+import { Search, Pencil, Trash2, Sparkles } from 'lucide-react'
+import { toast } from 'sonner'
 import { Input } from '@/components/ui/input'
 import { useDashboard } from '@/features/dashboard/hooks/use-dashboard'
 import { Button } from '@/components/ui/button'
@@ -18,6 +19,9 @@ import { SpeakButton } from '@/components/speak-button'
 import { LoadingState, ErrorState } from '@/components/query-state'
 import { useVocabularies } from '@/features/vocabularies/hooks/use-vocabularies'
 import { useWordDialog } from '@/features/vocabularies/hooks/use-word-dialog'
+import { useLanguageStore, SUPPORTED_LANGUAGES } from '@/lib/zustand/language.store'
+import { STARTER_DECKS } from '@/features/vocabularies/data/starter-decks'
+import vocabularyService from '@/features/vocabularies/services'
 export default function LibraryPage() {
   const [now, setNow] = useState(() => Date.now())
   useEffect(() => {
@@ -32,9 +36,11 @@ export default function LibraryPage() {
   const page = Math.min(100000, Math.max(1, Number(params.get('page')) || 1))
   const level = /^[0-5]$/.test(filter) ? Number(filter) : undefined
   const dashboard = useDashboard(7)
+  const { currentLanguage } = useLanguageStore()
   const query = useVocabularies({
     search,
     level,
+    language: currentLanguage,
     dueOnly: filter === 'due',
     sort: ['recent', 'alpha', 'level'].includes(sort) ? sort : 'recent',
     page,
@@ -45,6 +51,26 @@ export default function LibraryPage() {
     (!filter && !search && !query.isPlaceholderData
       ? query.data?.totalItems
       : undefined)
+  const [loadingStarters, setLoadingStarters] = useState(false)
+  const activeLang = SUPPORTED_LANGUAGES.find((l) => l.code === currentLanguage) || SUPPORTED_LANGUAGES[0]
+
+  const handleLoadStarterDeck = async () => {
+    const deck = STARTER_DECKS[currentLanguage]
+    if (!deck || deck.length === 0) return
+    setLoadingStarters(true)
+    try {
+      for (const item of deck) {
+        await vocabularyService.save({ data: item })
+      }
+      toast.success(`Đã nạp ${deck.length} từ vựng mẫu ${activeLang.label} thành công!`)
+      void query.refetch()
+    } catch {
+      toast.error('Không thể nạp bộ từ mẫu.')
+    } finally {
+      setLoadingStarters(false)
+    }
+  }
+
   const set = (name: string, value: string) => {
     const next = new URLSearchParams(params)
     next.delete('page')
@@ -171,6 +197,7 @@ export default function LibraryPage() {
                           <SpeakButton
                             term={word.term}
                             audioUrl={word.audioUrl}
+                            language={word.language}
                           />
                         </div>
                       </td>
@@ -227,11 +254,24 @@ export default function LibraryPage() {
             </div>
           ) : (
             <div className="empty-state glass-panel">
-              <h2>Không có từ phù hợp.</h2>
-              <p>Thử bộ lọc khác hoặc lưu một từ mới.</p>
-              <Button className="btn btn-primary" onClick={dialog.openCreate}>
-                Thêm từ mới
-              </Button>
+              <h2>Kho từ vựng {activeLang.label} đang trống</h2>
+              <p>Thử bộ lọc khác, tự thêm từ mới hoặc nạp nhanh bộ từ khởi đầu.</p>
+              <div className="flex flex-wrap items-center justify-center gap-3 mt-4">
+                <Button className="btn btn-primary cursor-pointer" onClick={dialog.openCreate}>
+                  Thêm từ mới
+                </Button>
+                {STARTER_DECKS[currentLanguage]?.length > 0 && (
+                  <Button
+                    variant="outline"
+                    className="gap-2 border-border/80 cursor-pointer"
+                    onClick={handleLoadStarterDeck}
+                    disabled={loadingStarters}
+                  >
+                    <Sparkles className="w-4 h-4 text-[#FD5F01]" />
+                    {loadingStarters ? 'Đang nạp...' : `Nạp bộ từ mẫu ${activeLang.label}`}
+                  </Button>
+                )}
+              </div>
             </div>
           )}
           <div className="list-footer">

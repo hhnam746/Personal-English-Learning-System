@@ -5,6 +5,7 @@ namespace VoP.Repository.Entities;
 public class FlashcardReview
 {
     public Guid Id { get; set; }
+    public Guid? UserId { get; set; }
     public Guid VocabularyId { get; set; }
     public Guid? MeaningId { get; set; }
     public FlashcardRating Rating { get; set; }

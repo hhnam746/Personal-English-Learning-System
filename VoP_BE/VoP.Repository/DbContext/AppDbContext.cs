@@ -76,10 +76,15 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             builder.ToTable("vocabularies");
             builder.HasKey(x => x.Id);
             builder.Property(x => x.Id).HasColumnName("id").HasColumnType("uuid").IsRequired().HasDefaultValueSql("gen_random_uuid()");
+            builder.Property(x => x.UserId).HasColumnName("user_id").HasColumnType("uuid");
+            builder.Property(x => x.Language).HasColumnName("language").HasColumnType("varchar(10)").IsRequired().HasDefaultValue("en");
+            builder.Property(x => x.PhoneticReading).HasColumnName("phonetic_reading").HasColumnType("text");
+            builder.Property(x => x.ScriptType).HasColumnName("script_type").HasColumnType("varchar(50)");
             builder.Property(x => x.IsSuspended).HasColumnName("is_suspended");
             builder.Property(x => x.Term).HasColumnName("term").HasColumnType("varchar(255)").IsRequired();
             builder.Property(x => x.NormalizedTerm).HasColumnName("normalized_term").HasColumnType("varchar(255)").IsRequired();
-            builder.HasIndex(x => x.NormalizedTerm).IsUnique();
+            builder.HasIndex(x => new { x.UserId, x.NormalizedTerm, x.Language }).HasDatabaseName("ix_vocabularies_user_term_lang");
+            builder.HasIndex(x => new { x.UserId, x.Language }).HasDatabaseName("ix_vocabularies_user_lang");
             builder.Property(x => x.Ipa).HasColumnName("ipa").HasColumnType("varchar(160)");
             builder.Property(x => x.AudioUrl).HasColumnName("audio_url").HasColumnType("text");
             builder.Property(x => x.CreatedAt).HasColumnName("created_at").HasColumnType("timestamptz").IsRequired().HasDefaultValueSql("now()");
@@ -135,6 +140,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
                 table.HasCheckConstraint("ck_learning_progress_0", "level BETWEEN 0 AND 5");
             });
             builder.HasKey(x => x.VocabularyId);
+            builder.Property(x => x.UserId).HasColumnName("user_id").HasColumnType("uuid");
             builder.Property(x => x.MappedMeaningId).HasColumnName("mapped_meaning_id");
             builder.Property(x => x.VocabularyId).HasColumnName("vocabulary_id").HasColumnType("uuid").IsRequired();
             builder.Property(x => x.Level).HasColumnName("level").HasColumnType("smallint").IsRequired().HasDefaultValue((short)0);
@@ -153,6 +159,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             builder.ToTable("practice_sessions");
             builder.HasKey(x => x.Id);
             builder.Property(x => x.Id).HasColumnName("id").HasColumnType("uuid").IsRequired().HasDefaultValueSql("gen_random_uuid()");
+            builder.Property(x => x.UserId).HasColumnName("user_id").HasColumnType("uuid");
+            builder.Property(x => x.Language).HasColumnName("language").HasColumnType("varchar(10)").IsRequired().HasDefaultValue("en");
             builder.Property(x => x.Status).HasColumnName("status").HasColumnType("practice_session_status").IsRequired().HasDefaultValue(PracticeSessionStatus.InProgress);
             builder.Property(x => x.StartedAt).HasColumnName("started_at").HasColumnType("timestamptz").IsRequired().HasDefaultValueSql("now()");
             builder.Property(x => x.FinishedAt).HasColumnName("finished_at").HasColumnType("timestamptz");
@@ -233,6 +241,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             builder.ToTable("flashcard_reviews");
             builder.HasKey(x => x.Id);
             builder.Property(x => x.Id).HasColumnName("id").HasColumnType("uuid").IsRequired().HasDefaultValueSql("gen_random_uuid()");
+            builder.Property(x => x.UserId).HasColumnName("user_id").HasColumnType("uuid");
             builder.Property(x => x.VocabularyId).HasColumnName("vocabulary_id").HasColumnType("uuid").IsRequired();
             builder.Property(x => x.MeaningId).HasColumnName("meaning_id").HasColumnType("uuid");
             builder.Property(x => x.Rating).HasColumnName("rating").HasColumnType("flashcard_rating").IsRequired();

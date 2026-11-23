@@ -3,6 +3,7 @@ import { BookOpen, Check, Headphones, PenLine, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { SpeakButton } from '@/components/speak-button'
+import { useLanguageStore } from '@/lib/zustand/language.store'
 import type { Question, Answer } from '../types'
 
 const exerciseLabels = {
@@ -36,11 +37,19 @@ export function QuestionForm({
   advancing: boolean
   ipa?: string | null
 }) {
+  const { currentLanguage } = useLanguageStore()
+  const inputRef = useRef<HTMLInputElement>(null)
   const [answer, setAnswer] = useState('')
   const [audioError, setAudioError] = useState(false)
   const form = useRef<HTMLFormElement>(null)
   const heading = useRef<HTMLHeadingElement>(null)
   const submit = useRef<HTMLButtonElement>(null)
+
+  const SPECIAL_CHARS: Record<string, string[]> = {
+    es: ['á', 'é', 'í', 'ó', 'ú', 'ñ', 'ü', '¿', '¡'],
+    it: ['à', 'è', 'é', 'ì', 'ò', 'ù']
+  }
+  const specialChars = SPECIAL_CHARS[currentLanguage] || []
   useEffect(() => {
     heading.current?.focus()
   }, [])
@@ -136,19 +145,48 @@ export function QuestionForm({
           ))}
         </fieldset>
       ) : (
-        <label className="typing-answer">
-          <Input
-            className="glass-control"
-            aria-label="Câu trả lời"
-            placeholder="Nhập từ tiếng Anh…"
-            autoComplete="off"
-            autoCapitalize="off"
-            spellCheck={false}
-            value={answer}
-            disabled={pending || !!feedback}
-            onChange={(e) => setAnswer(e.target.value)}
-          />
-        </label>
+        <div className="typing-container space-y-2">
+          <label className="typing-answer block">
+            <Input
+              ref={inputRef}
+              className="glass-control"
+              aria-label="Câu trả lời"
+              placeholder={
+                currentLanguage === 'ja'
+                  ? 'Nhập từ tiếng Nhật…'
+                  : currentLanguage === 'es'
+                    ? 'Nhập từ tiếng Tây Ban Nha…'
+                    : currentLanguage === 'it'
+                      ? 'Nhập từ tiếng Ý…'
+                      : 'Nhập từ tiếng Anh…'
+              }
+              autoComplete="off"
+              autoCapitalize="off"
+              spellCheck={false}
+              value={answer}
+              disabled={pending || !!feedback}
+              onChange={(e) => setAnswer(e.target.value)}
+            />
+          </label>
+          {specialChars.length > 0 && !feedback && (
+            <div className="flex flex-wrap gap-1.5 items-center">
+              <span className="text-[11px] text-muted-foreground mr-1">Ký tự đặc biệt:</span>
+              {specialChars.map((char) => (
+                <button
+                  key={char}
+                  type="button"
+                  onClick={() => {
+                    setAnswer((prev) => prev + char)
+                    inputRef.current?.focus()
+                  }}
+                  className="w-7 h-7 rounded-lg bg-card/80 border border-border/70 hover:border-[#FD5F01]/60 hover:text-[#FD5F01] text-xs font-semibold flex items-center justify-center transition-colors cursor-pointer"
+                >
+                  {char}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       )}
       <div
         className={`answer-bottom ${feedback ? (feedback.isCorrect ? 'feedback-correct' : 'feedback-wrong') : ''}`}
