@@ -11,6 +11,7 @@ export const STARTER_DECKS: Record<TargetLanguage, VocabularyInput[]> = {
       scriptType: 'Kanji',
       ipa: '/ne̞ko̞/',
       audioUrl: null,
+      imageUrl: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=400&auto=format&fit=crop&q=80',
       meanings: [
         {
           meaningVi: 'Con mèo',
@@ -35,6 +36,7 @@ export const STARTER_DECKS: Record<TargetLanguage, VocabularyInput[]> = {
       scriptType: 'Kanji',
       ipa: '/mi.zɯᵝ/',
       audioUrl: null,
+      imageUrl: 'https://images.unsplash.com/photo-1548839140-29a749e1bc4e?w=400&auto=format&fit=crop&q=80',
       meanings: [
         {
           meaningVi: 'Nước (uống)',
@@ -135,6 +137,7 @@ export const STARTER_DECKS: Record<TargetLanguage, VocabularyInput[]> = {
       scriptType: 'Latin',
       ipa: '/ko.ɾaˈθon/',
       audioUrl: null,
+      imageUrl: 'https://images.unsplash.com/photo-1518199266791-5375a83190b7?w=400&auto=format&fit=crop&q=80',
       meanings: [
         {
           meaningVi: 'Trái tim, tấm lòng',
@@ -283,6 +286,7 @@ export const STARTER_DECKS: Record<TargetLanguage, VocabularyInput[]> = {
       scriptType: 'Latin',
       ipa: '/tʃitˈta/',
       audioUrl: null,
+      imageUrl: 'https://images.unsplash.com/photo-1516483638261-f4dbaf036963?w=400&auto=format&fit=crop&q=80',
       meanings: [
         {
           meaningVi: 'Thành phố',
@@ -383,6 +387,7 @@ export const STARTER_DECKS: Record<TargetLanguage, VocabularyInput[]> = {
       scriptType: 'Latin',
       ipa: '/rɪˈzɪl.i.ənt/',
       audioUrl: null,
+      imageUrl: 'https://images.unsplash.com/photo-1448375240586-882707db888b?w=400&auto=format&fit=crop&q=80',
       meanings: [
         {
           meaningVi: 'Kiên cường, có khả năng phục hồi nhanh',

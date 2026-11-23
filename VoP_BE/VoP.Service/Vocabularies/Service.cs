@@ -104,10 +104,16 @@ public sealed class Service(AppDbContext db) : IService
             v.ScriptType = request.ScriptType;
             v.Ipa = request.Ipa;
             v.AudioUrl = request.AudioUrl;
+            v.ImageUrl = request.ImageUrl;
         }
         else if (string.IsNullOrWhiteSpace(v.Ipa) && !string.IsNullOrWhiteSpace(request.Ipa))
         {
             v.Ipa = request.Ipa;
+            v.UpdatedAt = DateTimeOffset.UtcNow;
+        }
+        if (append && string.IsNullOrWhiteSpace(v.ImageUrl) && !string.IsNullOrWhiteSpace(request.ImageUrl))
+        {
+            v.ImageUrl = request.ImageUrl;
             v.UpdatedAt = DateTimeOffset.UtcNow;
         }
         if (!append) v.UpdatedAt = DateTimeOffset.UtcNow;

@@ -27,6 +27,7 @@ export interface Vocabulary {
   scriptType?: string | null
   ipa: string | null
   audioUrl: string | null
+  imageUrl?: string | null
   createdAt: string
   updatedAt: string
   meanings: Meaning[]
@@ -43,6 +44,7 @@ export interface VocabularyInput {
   scriptType?: string | null
   ipa: string | null
   audioUrl: string | null
+  imageUrl?: string | null
   meanings: Meaning[]
 }
 

@@ -15,6 +15,7 @@ export interface Session {
     levelAtStart: number
     term: string
     ipa: string | null
+    imageUrl?: string | null
   }[]
 }
 export interface Question {
@@ -25,6 +26,7 @@ export interface Question {
   prompt: string
   audioUrl: string | null
   options: string[]
+  imageUrl?: string | null
 }
 export interface Answer {
   attemptId: string

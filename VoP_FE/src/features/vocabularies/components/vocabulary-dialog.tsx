@@ -251,6 +251,16 @@ export function VocabularyDialog() {
                     <span>{word.ipa || 'Chưa có IPA'}</span>
                     <SpeakButton term={word.term} audioUrl={word.audioUrl} language={word.language} />
                   </div>
+                  {word.imageUrl && (
+                    <div className="my-3 flex justify-center rounded-2xl overflow-hidden border border-border/60 bg-muted/20 p-2 shadow-sm">
+                      <img
+                        src={word.imageUrl}
+                        alt={word.term}
+                        className="max-h-48 w-auto rounded-xl object-contain shadow-md"
+                        loading="lazy"
+                      />
+                    </div>
+                  )}
                   {word.meanings.map((m, i) => (
                     <section key={m.id || i}>
                       <h3>{m.meaningVi}</h3>

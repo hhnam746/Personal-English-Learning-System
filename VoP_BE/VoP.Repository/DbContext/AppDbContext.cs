@@ -87,6 +87,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             builder.HasIndex(x => new { x.UserId, x.Language }).HasDatabaseName("ix_vocabularies_user_lang");
             builder.Property(x => x.Ipa).HasColumnName("ipa").HasColumnType("varchar(160)");
             builder.Property(x => x.AudioUrl).HasColumnName("audio_url").HasColumnType("text");
+            builder.Property(x => x.ImageUrl).HasColumnName("image_url").HasColumnType("text");
             builder.Property(x => x.CreatedAt).HasColumnName("created_at").HasColumnType("timestamptz").IsRequired().HasDefaultValueSql("now()");
             builder.Property(x => x.UpdatedAt).HasColumnName("updated_at").HasColumnType("timestamptz").IsRequired().HasDefaultValueSql("now()");
             builder.Property(x => x.DeletedAt).HasColumnName("deleted_at").HasColumnType("timestamptz");

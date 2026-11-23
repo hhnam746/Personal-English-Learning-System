@@ -8,7 +8,8 @@ public record QuestionResponse(Guid Id,
     AttemptRole Role,
     string Prompt,
     string? AudioUrl,
-    IReadOnlyList<string> Options);
+    IReadOnlyList<string> Options,
+    string? ImageUrl = null);
 
 public record SessionResponse(Guid Id,
     PracticeSessionStatus Status,
@@ -26,7 +27,8 @@ public record SessionWordResponse(Guid Id,
     string? Ipa,
     Guid? MeaningId,
     string? MeaningVi,
-    bool IsLegacy);
+    bool IsLegacy,
+    string? ImageUrl = null);
 
 public record AnswerResponse(Guid AttemptId, bool IsCorrect, string CorrectAnswer, AttemptRole Role);
 

@@ -14,7 +14,7 @@ export const LANGUAGE_VOICE_MAP: Record<string, string> = {
   it: 'it-IT'
 }
 
-export function playTTS(term: string, language: string = 'en'): Promise<void> {
+export function playTTS(term: string, language: string = 'en', rate?: number): Promise<void> {
   return new Promise((resolve, reject) => {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
       reject(new Error('SpeechSynthesis not supported on this device.'))
@@ -25,7 +25,7 @@ export function playTTS(term: string, language: string = 'en'): Promise<void> {
     const utterance = new SpeechSynthesisUtterance(term)
     const targetLocale = LANGUAGE_VOICE_MAP[language] || 'en-US'
     utterance.lang = targetLocale
-    utterance.rate = language === 'ja' ? 0.9 : 0.95 // slightly slower for clarity
+    utterance.rate = rate ?? (language === 'ja' ? 0.9 : 0.95) // customizable or slightly slower for clarity
 
     // Try finding a matching native voice
     const voices = window.speechSynthesis.getVoices()

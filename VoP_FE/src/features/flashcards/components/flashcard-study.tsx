@@ -54,6 +54,13 @@ function Card({
             aria-hidden={flipped}
           >
             <span className="eyebrow">THỬ NHỚ NGHĨA CỦA TỪ</span>
+            {word.imageUrl && (
+              <img
+                src={word.imageUrl}
+                alt={word.term}
+                className="max-h-24 w-auto max-w-[200px] rounded-xl object-cover my-1 shadow-sm border border-border/40 pointer-events-none mx-auto"
+              />
+            )}
             <strong id={flipped ? undefined : contentId}>{word.term}</strong>
             <span className="flash-ipa">{word.ipa || 'Chưa có IPA'}</span>
             <span className="flip-prompt">

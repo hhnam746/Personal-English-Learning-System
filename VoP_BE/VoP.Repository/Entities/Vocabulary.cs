@@ -14,6 +14,7 @@ public class Vocabulary
     public bool IsSuspended { get; set; }
     public string? Ipa { get; set; }
     public string? AudioUrl { get; set; }
+    public string? ImageUrl { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
     public DateTimeOffset? DeletedAt { get; set; }

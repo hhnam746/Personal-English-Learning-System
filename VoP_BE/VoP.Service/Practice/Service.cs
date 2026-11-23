@@ -61,7 +61,8 @@ public sealed class Service(AppDbContext db, OfflineAudio audio) : IService
             w.MeaningId,
             s.Status == PracticeSessionStatus.InProgress ? null :
                 (w.QuestionPlan == null ? null : Plan(w).MeaningVi) ?? w.Meaning?.MeaningVi,
-            w.IsLegacy))
+            w.IsLegacy,
+            w.Vocabulary?.ImageUrl))
             .ToArray();
         var count = s.SessionWords.Sum(w => w.ExerciseAttempts.Count);
         var planned = s.SessionWords.Where(w => w.QuestionPlan != null).Sum(w => Plan(w).Questions.Count);
@@ -245,7 +246,8 @@ public sealed class Service(AppDbContext db, OfflineAudio audio) : IService
             item.Question.Role,
             item.Question.Prompt,
             audioUrl,
-            item.Question.Options);
+            item.Question.Options,
+            item.Word.Vocabulary?.ImageUrl);
     }
 
     public async Task<byte[]?> QuestionAudio(Guid id, Guid questionId, CancellationToken ct)

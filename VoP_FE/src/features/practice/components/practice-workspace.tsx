@@ -132,6 +132,37 @@ export function PracticeWorkspace() {
               Tối đa 12 nghĩa mỗi phiên. Level và lịch ôn
               chỉ cập nhật khi hoàn thành.
             </p>
+            <div className="pt-2 border-t border-border/40 space-y-2">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground block">
+                Các phương thức luyện tập khác:
+              </span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <Link
+                  to="/flashcards?mode=match"
+                  className="p-3 rounded-xl bg-card/60 hover:bg-card border border-border/60 transition-all hover:scale-[1.01] flex items-center gap-2.5 no-underline"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-orange-500/15 text-[#FD5F01] flex items-center justify-center font-bold text-sm shrink-0">
+                    ⚡
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-foreground">Ghép thẻ phản xạ</h4>
+                    <p className="text-[10px] text-muted-foreground">Match Madness ghép cặp từ & nghĩa</p>
+                  </div>
+                </Link>
+                <Link
+                  to="/flashcards"
+                  className="p-3 rounded-xl bg-card/60 hover:bg-card border border-border/60 transition-all hover:scale-[1.01] flex items-center gap-2.5 no-underline"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-blue-500/15 text-blue-500 flex items-center justify-center font-bold text-sm shrink-0">
+                    🎴
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-foreground">Lật thẻ Flashcard</h4>
+                    <p className="text-[10px] text-muted-foreground">Kèm ảnh minh họa & âm thanh</p>
+                  </div>
+                </Link>
+              </div>
+            </div>
             {data.latest.isError && (
               <ErrorState
                 error={data.latest.error}
@@ -412,19 +443,26 @@ export function PracticeWorkspace() {
             {Math.min(currentQuestion, total)} <span>/ {total}</span>
           </span>
         </div>
-        <QuestionForm
-          key={q.id}
-          question={q}
-          ipa={session.words.find((w) => w.id === q.sessionWordId)?.ipa}
-          pending={data.answer.isPending || data.skipAudio.isPending}
-          onSkipAudio={() => data.skipAudio.mutate({ sessionId: id, questionId: q.id })}
-          onAnswer={(answer) =>
-            data.answer.mutate({ sessionId: id, questionId: q.id, answer })
-          }
-          feedback={data.feedback}
-          onNext={() => void data.advance()}
-          advancing={data.next.isFetching}
-        />
+        {(() => {
+          const currentWord = session.words.find((w) => w.id === q.sessionWordId)
+          return (
+            <QuestionForm
+              key={q.id}
+              question={q}
+              ipa={currentWord?.ipa}
+              imageUrl={q.imageUrl || currentWord?.imageUrl}
+              targetWord={currentWord?.term}
+              pending={data.answer.isPending || data.skipAudio.isPending}
+              onSkipAudio={() => data.skipAudio.mutate({ sessionId: id, questionId: q.id })}
+              onAnswer={(answer) =>
+                data.answer.mutate({ sessionId: id, questionId: q.id, answer })
+              }
+              feedback={data.feedback}
+              onNext={() => void data.advance()}
+              advancing={data.next.isFetching}
+            />
+          )
+        })()}
       </>
     )
   }

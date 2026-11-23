@@ -9,7 +9,8 @@ ALTER TABLE vocabularies
   ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
   ADD COLUMN IF NOT EXISTS language VARCHAR(10) NOT NULL DEFAULT 'en',
   ADD COLUMN IF NOT EXISTS phonetic_reading TEXT,
-  ADD COLUMN IF NOT EXISTS script_type VARCHAR(50);
+  ADD COLUMN IF NOT EXISTS script_type VARCHAR(50),
+  ADD COLUMN IF NOT EXISTS image_url TEXT;
 
 -- Xóa index unique toàn cục cũ (để nhiều user có thể cùng lưu một từ, và 1 user có thể lưu cùng từ ở 2 ngôn ngữ)
 DROP INDEX IF EXISTS vocabularies_normalized_term_key;

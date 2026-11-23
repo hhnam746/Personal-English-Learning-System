@@ -237,6 +237,7 @@ export function VocabularyForm({
     defaultValues: {
       term: source?.term || '',
       ipa: source?.ipa || '',
+      imageUrl: source?.imageUrl || '',
       audioUrl: source?.audioUrl || '',
       meanings: source?.meanings.length ? source.meanings.map((m, i) => ({
         ...m,
@@ -281,6 +282,7 @@ export function VocabularyForm({
                   ...values,
                   language: source?.language || useLanguageStore.getState().currentLanguage,
                   ipa: values.ipa || null,
+                  imageUrl: values.imageUrl || null,
                   audioUrl: values.audioUrl || null,
                   meanings: values.meanings.map((m, meaningIndex) => ({
                     ...m,
@@ -371,6 +373,26 @@ export function VocabularyForm({
                 name="audioUrl"
                 label="URL âm thanh (không bắt buộc)"
               />
+              <TextField
+                name="imageUrl"
+                label="Link ảnh minh họa (URL hình ảnh đoán nghĩa)"
+              />
+              {methods.watch('imageUrl') && (
+                <div className="flex items-center gap-3 p-2.5 rounded-xl bg-card/60 border border-border/40">
+                  <img
+                    src={methods.watch('imageUrl') || ''}
+                    alt="Xem trước ảnh minh họa"
+                    className="h-14 w-14 object-cover rounded-lg border border-border/60 shrink-0"
+                    onError={(e) => {
+                      ;(e.target as HTMLElement).style.display = 'none'
+                    }}
+                  />
+                  <div className="text-xs text-muted-foreground">
+                    <span className="font-semibold text-foreground block">Ảnh minh họa đang dùng</span>
+                    Sẽ hiển thị trong Flashcard và bài tập "Hình đoán nghĩa"
+                  </div>
+                </div>
+              )}
               {fields.map((field, i) => (
                 <section
                   className="meaning-editor motion-field"

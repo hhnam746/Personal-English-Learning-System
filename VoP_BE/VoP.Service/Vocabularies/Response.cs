@@ -15,7 +15,8 @@ public record VocabularyResponse(Guid Id,
     bool MixedLevels = false,
     string Language = "en",
     string? PhoneticReading = null,
-    string? ScriptType = null)
+    string? ScriptType = null,
+    string? ImageUrl = null)
 {
     public static VocabularyResponse From(Vocabulary v, Guid? meaningId = null)
     {
@@ -48,7 +49,8 @@ public record VocabularyResponse(Guid Id,
         meanings.Select(m => m.Progress?.Level ?? (short)0).Distinct().Skip(1).Any(),
         v.Language,
         v.PhoneticReading,
-        v.ScriptType);
+        v.ScriptType,
+        v.ImageUrl);
     }
 }
 

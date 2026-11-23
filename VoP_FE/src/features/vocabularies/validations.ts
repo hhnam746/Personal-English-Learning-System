@@ -26,6 +26,13 @@ export const vocabularySchema = z
       .min(1, 'Nhập từ tiếng Anh')
       .max(255, 'Tối đa 255 ký tự'),
     ipa: optionalText(160),
+    imageUrl: z
+      .string()
+      .optional()
+      .refine(
+        (v) => !v || /^https?:\/\//i.test(v) || v.startsWith('/'),
+        'Nhập URL hình ảnh hợp lệ (http:// hoặc https://)'
+      ),
     audioUrl: z
       .string()
       .refine(

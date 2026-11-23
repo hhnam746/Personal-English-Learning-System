@@ -14,6 +14,8 @@ public sealed class VocabularyRequest
     public string? Ipa { get; set; }
     [StringLength(2048)]
     public string? AudioUrl { get; set; }
+    [StringLength(2048)]
+    public string? ImageUrl { get; set; }
     [Required, MinLength(1), MaxLength(30)]
     public List<MeaningRequest> Meanings { get; set; } = [];
 }
