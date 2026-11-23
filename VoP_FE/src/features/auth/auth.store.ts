@@ -92,7 +92,17 @@ export const useAuthStore = create<AuthState>((set) => ({
         set({ error: error.message, loading: false })
         return { error }
       }
-      set({ session: data.session, user: data.user, loading: false })
+      if (data.session) {
+        set({ session: data.session, user: data.user, loading: false })
+        return { error: null }
+      }
+      // Try immediate auto-login in case email verification is disabled
+      const signInRes = await supabase.auth.signInWithPassword({ email, password })
+      if (signInRes.data?.session) {
+        set({ session: signInRes.data.session, user: signInRes.data.user, loading: false })
+        return { error: null }
+      }
+      set({ user: data.user, loading: false })
       return { error: null }
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Sign up failed')
