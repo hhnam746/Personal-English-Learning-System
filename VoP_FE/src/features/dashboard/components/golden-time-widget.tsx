@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Sparkles, Bell, Play, CheckCircle2, Clock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -10,13 +10,11 @@ interface GoldenTimeWidgetProps {
 }
 
 export function GoldenTimeWidget({ dueCount, newCount }: GoldenTimeWidgetProps) {
-  const [hasNotificationPermission, setHasNotificationPermission] = useState(false)
-
-  useEffect(() => {
-    if (typeof window !== 'undefined' && 'Notification' in window) {
-      setHasNotificationPermission(Notification.permission === 'granted')
-    }
-  }, [])
+  const [hasNotificationPermission, setHasNotificationPermission] = useState(
+    () => typeof window !== 'undefined'
+      && 'Notification' in window
+      && Notification.permission === 'granted'
+  )
 
   const requestNotification = async () => {
     if (typeof window === 'undefined' || !('Notification' in window)) {
